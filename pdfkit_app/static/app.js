@@ -1043,8 +1043,8 @@ function loadImageInfoForResize() {
         document.getElementById("imageResizeOrigW").textContent = img.naturalWidth;
         document.getElementById("imageResizeOrigH").textContent = img.naturalHeight;
         document.getElementById("imageResizePreview").src = img.src;
-        document.getElementById("imageResizeInfo").classList.remove("hidden");
-        document.getElementById("imageResizeNoPreview").classList.add("hidden");
+        document.getElementById("imageResizeCard").classList.remove("hidden");
+        document.getElementById("imageResizeNoCard").classList.add("hidden");
 
         document.getElementById("imageResizeWidthPct").value = 100;
         document.getElementById("imageResizeHeightPct").value = 100;
@@ -1059,8 +1059,8 @@ function clearImageResizeInfo() {
     imageResizeOriginalWidth = 0;
     imageResizeOriginalHeight = 0;
     imageResizeLockRatio = false;
-    document.getElementById("imageResizeInfo").classList.add("hidden");
-    document.getElementById("imageResizeNoPreview").classList.remove("hidden");
+    document.getElementById("imageResizeCard").classList.add("hidden");
+    document.getElementById("imageResizeNoCard").classList.remove("hidden");
     document.getElementById("imageResizePreview").removeAttribute("src");
     document.getElementById("imageResizeOrigW").textContent = "-";
     document.getElementById("imageResizeOrigH").textContent = "-";

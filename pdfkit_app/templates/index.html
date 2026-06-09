@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>PDF 处理平台</title>
-    <link rel="stylesheet" href="/static/style.css?v=10">
+    <link rel="stylesheet" href="/static/style.css?v=11">
 </head>
 <body>
     <header>
@@ -177,51 +177,55 @@
 
                 <!-- 框选截取 -->
                 <div class="tab-panel" id="panel-crop">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>页码</label>
-                        <input type="number" id="cropPage" value="1" min="1">
+                <div class="crop-toolbar">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>页码</label>
+                            <input type="number" id="cropPage" value="1" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>截取比例</label>
+                            <select id="cropRatio">
+                                <option value="free">自由比例</option>
+                                <option value="1:1">1:1</option>
+                                <option value="a4p">A4 竖版</option>
+                                <option value="a4l">A4 横版</option>
+                                <option value="16:9">16:9</option>
+                                <option value="4:3">4:3</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>输出 DPI</label>
+                            <input type="number" id="cropDpi" value="300" min="72" max="600" step="1">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>截取比例</label>
-                        <select id="cropRatio">
-                            <option value="free">自由比例</option>
-                            <option value="1:1">1:1</option>
-                            <option value="a4p">A4 竖版</option>
-                            <option value="a4l">A4 横版</option>
-                            <option value="16:9">16:9</option>
-                            <option value="4:3">4:3</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>输出 DPI</label>
-                        <input type="number" id="cropDpi" value="300" min="72" max="600" step="1">
+                    <div class="crop-actions">
+                        <button class="btn btn-primary btn-sm" id="cropLoadBtn">加载页面</button>
+                        <button class="btn btn-primary btn-sm" id="cropSaveBtn">保存 PNG</button>
+                        <button class="btn btn-sm" id="cropZoomOutBtn">缩小</button>
+                        <input type="range" id="cropZoom" class="crop-zoom" min="50" max="300" value="100" step="10">
+                        <button class="btn btn-sm" id="cropZoomInBtn">放大</button>
+                        <button class="btn btn-sm" id="cropZoomResetBtn">100%</button>
+                        <span id="cropZoomLabel" class="crop-zoom-label">100%</span>
                     </div>
                 </div>
-                <div class="crop-actions">
-                    <button class="btn btn-primary" id="cropLoadBtn">加载页面</button>
-                    <button class="btn btn-primary" id="cropSaveBtn">保存 PNG</button>
-                    <button class="btn btn-sm" id="cropZoomOutBtn">缩小</button>
-                    <input type="range" id="cropZoom" class="crop-zoom" min="50" max="300" value="100" step="10">
-                    <button class="btn btn-sm" id="cropZoomInBtn">放大</button>
-                    <button class="btn btn-sm" id="cropZoomResetBtn">100%</button>
-                    <span id="cropZoomLabel" class="crop-zoom-label">100%</span>
-                </div>
-                <div id="cropPlaceholder" class="crop-placeholder">
-                    <p>选择一个 PDF 文件后加载页面并拖拽框选</p>
-                </div>
-                <div id="cropStageWrap" class="crop-stage-wrap hidden">
-                    <div id="cropStage" class="crop-stage">
-                        <img id="cropImage" alt="PDF 页面预览">
-                        <div id="cropBox" class="crop-box hidden">
-                            <span class="crop-handle crop-handle-nw" data-handle="nw"></span>
-                            <span class="crop-handle crop-handle-n" data-handle="n"></span>
-                            <span class="crop-handle crop-handle-ne" data-handle="ne"></span>
-                            <span class="crop-handle crop-handle-e" data-handle="e"></span>
-                            <span class="crop-handle crop-handle-se" data-handle="se"></span>
-                            <span class="crop-handle crop-handle-s" data-handle="s"></span>
-                            <span class="crop-handle crop-handle-sw" data-handle="sw"></span>
-                            <span class="crop-handle crop-handle-w" data-handle="w"></span>
+                <div class="crop-stage-area">
+                    <div id="cropPlaceholder" class="crop-placeholder">
+                        <p>选择一个 PDF 文件后加载页面并拖拽框选</p>
+                    </div>
+                    <div id="cropStageWrap" class="crop-stage-wrap hidden">
+                        <div id="cropStage" class="crop-stage">
+                            <img id="cropImage" alt="PDF 页面预览">
+                            <div id="cropBox" class="crop-box hidden">
+                                <span class="crop-handle crop-handle-nw" data-handle="nw"></span>
+                                <span class="crop-handle crop-handle-n" data-handle="n"></span>
+                                <span class="crop-handle crop-handle-ne" data-handle="ne"></span>
+                                <span class="crop-handle crop-handle-e" data-handle="e"></span>
+                                <span class="crop-handle crop-handle-se" data-handle="se"></span>
+                                <span class="crop-handle crop-handle-s" data-handle="s"></span>
+                                <span class="crop-handle crop-handle-sw" data-handle="sw"></span>
+                                <span class="crop-handle crop-handle-w" data-handle="w"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -273,66 +277,70 @@
                 </div>
 
                 <div class="tab-panel active" id="image-panel-resize">
-                    <div id="imageResizeInfo" class="image-resize-info hidden">
-                        <div class="image-resize-preview-wrap">
-                            <img id="imageResizePreview" class="image-resize-preview" alt="预览">
+                    <div id="imageResizeCard" class="image-resize-card hidden">
+                        <div class="image-resize-left">
+                            <div class="image-resize-thumb">
+                                <img id="imageResizePreview" alt="预览">
+                            </div>
+                            <div class="image-resize-dims">
+                                原始: <span id="imageResizeOrigW">-</span> x <span id="imageResizeOrigH">-</span> px
+                            </div>
                         </div>
-                        <div class="image-resize-dims">
-                            原始尺寸: <span id="imageResizeOrigW">-</span> x <span id="imageResizeOrigH">-</span> px
+                        <div class="image-resize-right">
+                            <div class="form-group">
+                                <label>目标比例预设</label>
+                                <div class="resize-preset-group">
+                                    <button class="btn btn-sm resize-preset active" data-resize-preset="free">自由拉伸</button>
+                                    <button class="btn btn-sm resize-preset" data-resize-preset="1:1">1:1</button>
+                                    <button class="btn btn-sm resize-preset" data-resize-preset="4:3">4:3</button>
+                                    <button class="btn btn-sm resize-preset" data-resize-preset="16:9">16:9</button>
+                                    <button class="btn btn-sm resize-preset" data-resize-preset="3:4">3:4</button>
+                                    <button class="btn btn-sm resize-preset" data-resize-preset="9:16">9:16</button>
+                                    <button class="btn btn-sm resize-preset" data-resize-preset="a4p">A4竖</button>
+                                    <button class="btn btn-sm resize-preset" data-resize-preset="a4l">A4横</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>常用倍率</label>
+                                <div class="resize-preset-group">
+                                    <button class="btn btn-sm resize-scale" data-resize-scale="50">50%</button>
+                                    <button class="btn btn-sm resize-scale" data-resize-scale="75">75%</button>
+                                    <button class="btn btn-sm resize-scale" data-resize-scale="100">100%</button>
+                                    <button class="btn btn-sm resize-scale" data-resize-scale="150">150%</button>
+                                    <button class="btn btn-sm resize-scale" data-resize-scale="200">200%</button>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>宽度 (%)</label>
+                                    <input type="number" id="imageResizeWidthPct" value="100" min="1" max="1000" step="1">
+                                </div>
+                                <div class="form-group form-group-lock">
+                                    <button class="btn btn-sm lock-btn" id="imageResizeLockBtn" title="锁定 / 解锁宽高比">🔗</button>
+                                </div>
+                                <div class="form-group">
+                                    <label>高度 (%)</label>
+                                    <input type="number" id="imageResizeHeightPct" value="100" min="1" max="1000" step="1">
+                                </div>
+                            </div>
+                            <div class="image-resize-summary">
+                                <div>
+                                    <span class="image-resize-summary-label">计算尺寸</span>
+                                    <strong><span id="imageResizeCalcW">-</span> x <span id="imageResizeCalcH">-</span> px</strong>
+                                </div>
+                                <div>
+                                    <span class="image-resize-summary-label">输出比例</span>
+                                    <strong id="imageResizeCalcRatio">-</strong>
+                                </div>
+                            </div>
+                            <div class="action-row">
+                                <button class="btn btn-primary" id="imageResizeBtn">保存拉伸图片</button>
+                                <button class="btn" id="imageResizeResetBtn">重置设置</button>
+                            </div>
                         </div>
                     </div>
-                    <div id="imageResizeNoPreview" class="image-resize-nopreview">
+                    <div id="imageResizeNoCard" class="image-resize-nopreview">
                         <p>请先在左侧选择一张图片文件</p>
-                    </div>
-                    <div class="form-group">
-                        <label>目标比例预设</label>
-                        <div class="resize-preset-group">
-                            <button class="btn btn-sm resize-preset active" data-resize-preset="free">自由拉伸</button>
-                            <button class="btn btn-sm resize-preset" data-resize-preset="1:1">1:1</button>
-                            <button class="btn btn-sm resize-preset" data-resize-preset="4:3">4:3</button>
-                            <button class="btn btn-sm resize-preset" data-resize-preset="16:9">16:9</button>
-                            <button class="btn btn-sm resize-preset" data-resize-preset="3:4">3:4</button>
-                            <button class="btn btn-sm resize-preset" data-resize-preset="9:16">9:16</button>
-                            <button class="btn btn-sm resize-preset" data-resize-preset="a4p">A4竖</button>
-                            <button class="btn btn-sm resize-preset" data-resize-preset="a4l">A4横</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>常用倍率</label>
-                        <div class="resize-preset-group">
-                            <button class="btn btn-sm resize-scale" data-resize-scale="50">50%</button>
-                            <button class="btn btn-sm resize-scale" data-resize-scale="75">75%</button>
-                            <button class="btn btn-sm resize-scale" data-resize-scale="100">100%</button>
-                            <button class="btn btn-sm resize-scale" data-resize-scale="150">150%</button>
-                            <button class="btn btn-sm resize-scale" data-resize-scale="200">200%</button>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>宽度 (%)</label>
-                            <input type="number" id="imageResizeWidthPct" value="100" min="1" max="1000" step="1">
-                        </div>
-                        <div class="form-group form-group-lock">
-                            <button class="btn btn-sm lock-btn" id="imageResizeLockBtn" title="锁定 / 解锁宽高比">🔗</button>
-                        </div>
-                        <div class="form-group">
-                            <label>高度 (%)</label>
-                            <input type="number" id="imageResizeHeightPct" value="100" min="1" max="1000" step="1">
-                        </div>
-                    </div>
-                    <div class="image-resize-summary">
-                        <div>
-                            <span class="image-resize-summary-label">计算尺寸</span>
-                            <strong><span id="imageResizeCalcW">-</span> x <span id="imageResizeCalcH">-</span> px</strong>
-                        </div>
-                        <div>
-                            <span class="image-resize-summary-label">输出比例</span>
-                            <strong id="imageResizeCalcRatio">-</strong>
-                        </div>
-                    </div>
-                    <div class="action-row">
-                        <button class="btn btn-primary" id="imageResizeBtn">保存拉伸图片</button>
-                        <button class="btn" id="imageResizeResetBtn">重置设置</button>
                     </div>
                 </div>
 
@@ -357,43 +365,47 @@
                 </div>
 
                 <div class="tab-panel" id="image-panel-crop">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>截取比例</label>
-                            <select id="imageCropRatio">
-                                <option value="free">自由比例</option>
-                                <option value="1:1">1:1</option>
-                                <option value="a4p">A4 竖版</option>
-                                <option value="a4l">A4 横版</option>
-                                <option value="16:9">16:9</option>
-                                <option value="4:3">4:3</option>
-                            </select>
+                    <div class="crop-toolbar">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>截取比例</label>
+                                <select id="imageCropRatio">
+                                    <option value="free">自由比例</option>
+                                    <option value="1:1">1:1</option>
+                                    <option value="a4p">A4 竖版</option>
+                                    <option value="a4l">A4 横版</option>
+                                    <option value="16:9">16:9</option>
+                                    <option value="4:3">4:3</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="crop-actions">
+                            <button class="btn btn-primary btn-sm" id="imageCropLoadBtn">加载图片</button>
+                            <button class="btn btn-primary btn-sm" id="imageCropSaveBtn">保存截取 PNG</button>
+                            <button class="btn btn-sm" id="imageCropZoomOutBtn">缩小</button>
+                            <input type="range" id="imageCropZoom" class="crop-zoom" min="50" max="300" value="100" step="10">
+                            <button class="btn btn-sm" id="imageCropZoomInBtn">放大</button>
+                            <button class="btn btn-sm" id="imageCropZoomResetBtn">100%</button>
+                            <span id="imageCropZoomLabel" class="crop-zoom-label">100%</span>
                         </div>
                     </div>
-                    <div class="crop-actions">
-                        <button class="btn btn-primary" id="imageCropLoadBtn">加载图片</button>
-                        <button class="btn btn-primary" id="imageCropSaveBtn">保存截取 PNG</button>
-                        <button class="btn btn-sm" id="imageCropZoomOutBtn">缩小</button>
-                        <input type="range" id="imageCropZoom" class="crop-zoom" min="50" max="300" value="100" step="10">
-                        <button class="btn btn-sm" id="imageCropZoomInBtn">放大</button>
-                        <button class="btn btn-sm" id="imageCropZoomResetBtn">100%</button>
-                        <span id="imageCropZoomLabel" class="crop-zoom-label">100%</span>
-                    </div>
-                    <div id="imageCropPlaceholder" class="crop-placeholder">
-                        <p>选择一个图片文件后加载并拖拽框选</p>
-                    </div>
-                    <div id="imageCropStageWrap" class="crop-stage-wrap hidden">
-                        <div id="imageCropStage" class="crop-stage">
-                            <img id="imageCropImage" alt="图片预览">
-                            <div id="imageCropBox" class="crop-box hidden">
-                                <span class="crop-handle crop-handle-nw" data-handle="nw"></span>
-                                <span class="crop-handle crop-handle-n" data-handle="n"></span>
-                                <span class="crop-handle crop-handle-ne" data-handle="ne"></span>
-                                <span class="crop-handle crop-handle-e" data-handle="e"></span>
-                                <span class="crop-handle crop-handle-se" data-handle="se"></span>
-                                <span class="crop-handle crop-handle-s" data-handle="s"></span>
-                                <span class="crop-handle crop-handle-sw" data-handle="sw"></span>
-                                <span class="crop-handle crop-handle-w" data-handle="w"></span>
+                    <div class="crop-stage-area">
+                        <div id="imageCropPlaceholder" class="crop-placeholder">
+                            <p>选择一个图片文件后加载并拖拽框选</p>
+                        </div>
+                        <div id="imageCropStageWrap" class="crop-stage-wrap hidden">
+                            <div id="imageCropStage" class="crop-stage">
+                                <img id="imageCropImage" alt="图片预览">
+                                <div id="imageCropBox" class="crop-box hidden">
+                                    <span class="crop-handle crop-handle-nw" data-handle="nw"></span>
+                                    <span class="crop-handle crop-handle-n" data-handle="n"></span>
+                                    <span class="crop-handle crop-handle-ne" data-handle="ne"></span>
+                                    <span class="crop-handle crop-handle-e" data-handle="e"></span>
+                                    <span class="crop-handle crop-handle-se" data-handle="se"></span>
+                                    <span class="crop-handle crop-handle-s" data-handle="s"></span>
+                                    <span class="crop-handle crop-handle-sw" data-handle="sw"></span>
+                                    <span class="crop-handle crop-handle-w" data-handle="w"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -458,6 +470,6 @@
         </main>
     </div>
 
-    <script src="/static/app.js?v=8"></script>
+    <script src="/static/app.js?v=9"></script>
 </body>
 </html>
