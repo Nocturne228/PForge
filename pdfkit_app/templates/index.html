@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>PDF 处理平台</title>
-    <link rel="stylesheet" href="/static/style.css?v=14">
+    <link rel="stylesheet" href="/static/style.css?v=17">
 </head>
 <body>
     <header>
@@ -65,6 +65,7 @@
                     <button class="tab" data-tab="delete">页面删除</button>
                     <button class="tab" data-tab="extract">页面提取</button>
                     <button class="tab" data-tab="crop">框选截取</button>
+                    <button class="tab" data-tab="metadata">元数据</button>
                     <button class="tab" data-tab="zip2pdf">ZIP 转 PDF</button>
                     <button class="tab" data-tab="clean">清理</button>
                 </div>
@@ -231,6 +232,51 @@
                 </div>
                 </div>
 
+                <!-- 元数据编辑 -->
+                <div class="tab-panel" id="panel-metadata">
+                    <div id="metadataPlaceholder" class="metadata-placeholder">
+                        <p>请先在左侧选择一个 PDF 文件</p>
+                    </div>
+                    <div id="metadataForm" class="metadata-form hidden">
+                        <div class="metadata-file" id="metadataFileInfo"></div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>标题</label>
+                                <input type="text" id="metaTitle" placeholder="Title">
+                            </div>
+                            <div class="form-group">
+                                <label>作者</label>
+                                <input type="text" id="metaAuthor" placeholder="Author">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>主题</label>
+                                <input type="text" id="metaSubject" placeholder="Subject">
+                            </div>
+                            <div class="form-group">
+                                <label>关键词</label>
+                                <input type="text" id="metaKeywords" placeholder="Keywords">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>创建程序</label>
+                                <input type="text" id="metaCreator" placeholder="Creator">
+                            </div>
+                            <div class="form-group">
+                                <label>生成程序</label>
+                                <input type="text" id="metaProducer" placeholder="Producer">
+                            </div>
+                        </div>
+                        <div class="action-row">
+                            <button class="btn btn-primary" id="metadataSaveBtn">保存元数据</button>
+                            <button class="btn" id="metadataReloadBtn">重新读取</button>
+                        </div>
+                        <div id="metadataStatus" class="metadata-status"></div>
+                    </div>
+                </div>
+
                 <!-- ZIP 转 PDF -->
                 <div class="tab-panel" id="panel-zip2pdf">
                     <div class="form-row">
@@ -385,22 +431,25 @@
                         </div>
                         <div class="form-group">
                             <label>截取比例</label>
-                            <select id="imageCropRatio">
-                                <option value="free">自由比例</option>
-                                <option value="1:1">1:1</option>
-                                <option value="a4p">A4 竖版</option>
-                                <option value="a4l">A4 横版</option>
-                                <option value="16:9">16:9</option>
-                                <option value="4:3">4:3</option>
-                            </select>
+                            <div class="segmented-control image-crop-ratio-grid" id="imageCropRatio">
+                                <button class="segmented-option active" data-crop-ratio="free">自由</button>
+                                <button class="segmented-option" data-crop-ratio="1:1">1:1</button>
+                                <button class="segmented-option" data-crop-ratio="a4p">A4 竖</button>
+                                <button class="segmented-option" data-crop-ratio="a4l">A4 横</button>
+                                <button class="segmented-option" data-crop-ratio="16:9">16:9</button>
+                                <button class="segmented-option" data-crop-ratio="4:3">4:3</button>
+                            </div>
                         </div>
-                        <div class="crop-actions image-crop-actions">
-                            <button class="btn btn-primary btn-sm" id="imageCropSaveBtn">保存截取 PNG</button>
-                            <button class="btn btn-sm" id="imageCropZoomOutBtn">缩小</button>
-                            <input type="range" id="imageCropZoom" class="crop-zoom" min="50" max="300" value="100" step="10">
-                            <button class="btn btn-sm" id="imageCropZoomInBtn">放大</button>
-                            <button class="btn btn-sm" id="imageCropZoomResetBtn">100%</button>
-                            <span id="imageCropZoomLabel" class="crop-zoom-label">100%</span>
+                        <div class="form-group">
+                            <label>预览缩放</label>
+                            <div class="image-crop-zoom-row">
+                                <input type="range" id="imageCropZoom" class="crop-zoom" min="50" max="300" value="100" step="10">
+                                <button class="btn btn-sm" id="imageCropZoomResetBtn">100%</button>
+                                <span id="imageCropZoomLabel" class="crop-zoom-label">100%</span>
+                            </div>
+                        </div>
+                        <div class="action-row image-crop-action-row">
+                            <button class="btn btn-primary" id="imageCropSaveBtn">保存截取 PNG</button>
                         </div>
                     </div>
 
@@ -481,6 +530,6 @@
         </main>
     </div>
 
-    <script src="/static/app.js?v=13"></script>
+    <script src="/static/app.js?v=17"></script>
 </body>
 </html>

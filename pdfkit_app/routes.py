@@ -21,6 +21,7 @@ from pdfkit_core import (
     delete_folder,
     extract_pdf,
     extract_png,
+    get_pdf_metadata,
     image_compress,
     image_convert,
     image_crop,
@@ -31,6 +32,7 @@ from pdfkit_core import (
     resize_file,
     resize_folder,
     resolve_dpi,
+    update_pdf_metadata,
     zip_file,
     zip_folder,
 )
@@ -414,6 +416,35 @@ def do_crop_png():
     output_arg = data.get("output")
 
     return _stream_task(crop_png, folder, file_arg, int(page), crop_box, output_arg, dpi=dpi)
+
+
+@api_bp.route("/pdf-metadata", methods=["POST"])
+def pdf_metadata():
+    data = request.get_json() or {}
+    folder = data.get("folder")
+    file_arg = data.get("file")
+    if not folder or not file_arg:
+        return jsonify({"error": "缺少必要参数 (folder, file)"}), 400
+    try:
+        folder = str(_resolve_allowed_path(folder))
+        return jsonify(get_pdf_metadata(folder, file_arg))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@api_bp.route("/pdf-metadata-save", methods=["POST"])
+def save_pdf_metadata():
+    data = request.get_json() or {}
+    folder = data.get("folder")
+    file_arg = data.get("file")
+    metadata = data.get("metadata")
+    if not folder or not file_arg or metadata is None:
+        return jsonify({"error": "缺少必要参数 (folder, file, metadata)"}), 400
+    try:
+        folder = str(_resolve_allowed_path(folder))
+    except (PermissionError, OSError) as exc:
+        return _path_error_response(exc)
+    return _stream_task(update_pdf_metadata, folder, file_arg, metadata)
 
 
 @api_bp.route("/image-resize", methods=["POST"])

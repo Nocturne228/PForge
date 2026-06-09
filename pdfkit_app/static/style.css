@@ -725,6 +725,52 @@ header .subtitle {
     color: var(--text-tertiary);
 }
 
+.metadata-placeholder {
+    padding: 32px 18px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    color: var(--text-tertiary);
+    font-size: 13px;
+    text-align: center;
+}
+
+.metadata-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.metadata-form .form-group {
+    margin-bottom: 0;
+}
+
+.metadata-file {
+    padding: 10px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+    word-break: break-all;
+}
+
+.metadata-status {
+    min-height: 18px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.metadata-status.error {
+    color: var(--danger);
+}
+
+.metadata-status.success {
+    color: var(--success);
+}
+
 .checkbox-group label {
     display: flex;
     align-items: center;
@@ -1253,7 +1299,13 @@ header .subtitle {
     flex-direction: column;
     padding: 14px;
     overflow: hidden;
-    background: var(--bg-card);
+    background:
+        linear-gradient(45deg, #f4f4f6 25%, transparent 25%),
+        linear-gradient(-45deg, #f4f4f6 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f4f4f6 75%),
+        linear-gradient(-45deg, transparent 75%, #f4f4f6 75%);
+    background-size: 22px 22px;
+    background-position: 0 0, 0 11px, 11px -11px, -11px 0;
 }
 
 .content.image-mode .image-preview-empty.hidden,
@@ -1269,8 +1321,8 @@ header .subtitle {
 }
 
 .image-crop-preview .crop-stage-wrap {
-    background: var(--bg-card);
-    border-color: var(--border-light);
+    background: transparent;
+    border-color: transparent;
 }
 
 .image-crop-preview .crop-box {
@@ -1348,6 +1400,10 @@ header .subtitle {
     box-shadow: var(--shadow-sm);
 }
 
+.image-crop-ratio-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .resize-size-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -1389,6 +1445,22 @@ header .subtitle {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
+}
+
+.image-crop-zoom-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.image-crop-zoom-row .crop-zoom {
+    width: 100%;
+}
+
+.image-crop-action-row {
+    margin-top: auto;
+    padding-top: 8px;
 }
 
 .content.image-mode .log-section {

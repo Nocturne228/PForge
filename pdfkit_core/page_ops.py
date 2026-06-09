@@ -8,6 +8,15 @@ from tqdm import tqdm
 from pdfkit_core.config import BACKUP_DIR_PAGE_OPS, DPI_PRESETS, EXCLUDE_DIRS
 from pdfkit_core.utils import OperationResult, resolve_dpi as resolve_dpi_value, resolve_output_path, resolve_pdf_file
 
+PDF_METADATA_FIELDS = {
+    "title": "/Title",
+    "author": "/Author",
+    "subject": "/Subject",
+    "keywords": "/Keywords",
+    "creator": "/Creator",
+    "producer": "/Producer",
+}
+
 
 def resolve_dpi(mode):
     return resolve_dpi_value(mode, DPI_PRESETS)
@@ -320,6 +329,54 @@ def extract_pdf(folder_path, file_arg, start_page, end_page, output_arg=None):
         root, pdf_path, output_arg, f"{pdf_path.stem}_pages_{start_page}-{end_page}.pdf"
     )
     return _extract_pdf_pages_range(pdf_path, start_page, end_page, output_path)
+
+
+def get_pdf_metadata(folder_path, file_arg):
+    root = Path(folder_path).expanduser().resolve()
+    pdf_path = resolve_pdf_file(root, file_arg, EXCLUDE_DIRS)
+    reader = PdfReader(pdf_path)
+    metadata = reader.metadata or {}
+    result = {}
+    for field, pdf_key in PDF_METADATA_FIELDS.items():
+        value = metadata.get(pdf_key, "")
+        result[field] = str(value) if value is not None else ""
+    result["pages"] = len(reader.pages)
+    result["name"] = pdf_path.name
+    result["path"] = str(pdf_path)
+    return result
+
+
+def update_pdf_metadata(folder_path, file_arg, metadata):
+    root = Path(folder_path).expanduser().resolve()
+    pdf_path = resolve_pdf_file(root, file_arg, EXCLUDE_DIRS)
+    reader = PdfReader(pdf_path)
+    writer = PdfWriter()
+    writer.clone_document_from_reader(reader)
+
+    next_metadata = {
+        str(key): str(value)
+        for key, value in dict(reader.metadata or {}).items()
+        if value is not None
+    }
+    for field, pdf_key in PDF_METADATA_FIELDS.items():
+        value = str((metadata or {}).get(field, "")).strip()
+        if value:
+            next_metadata[pdf_key] = value
+        else:
+            next_metadata.pop(pdf_key, None)
+    writer.add_metadata(next_metadata)
+
+    tmp_path = pdf_path.with_name(f".{pdf_path.name}.metadata.tmp")
+    try:
+        with open(tmp_path, "wb") as f:
+            writer.write(f)
+        tmp_path.replace(pdf_path)
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
+
+    print(f"已更新 PDF 元数据: {pdf_path.name}", flush=True)
+    return OperationResult(total=1, success=1, outputs=[pdf_path])
 
 
 def clean_page_backups(folder_path):

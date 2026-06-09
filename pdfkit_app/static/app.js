@@ -255,7 +255,10 @@ function switchToTab(tabName) {
     const panel = pdfPage.querySelector("#panel-" + tabName);
     if (panel) panel.classList.add("active");
 
-    document.querySelector(".content").classList.toggle("hide-log", tabName === "preview");
+    document.querySelector(".content").classList.toggle("hide-log", tabName === "preview" || tabName === "metadata");
+    if (tabName === "metadata") {
+        loadPdfMetadata();
+    }
 }
 
 function switchMainPage(pageName) {
@@ -281,7 +284,8 @@ function switchMainPage(pageName) {
         switchImageTab(getActiveImageTab());
     } else {
         const activePdfTab = document.querySelector("#pdfPage .tab.active");
-        content.classList.toggle("hide-log", activePdfTab && activePdfTab.dataset.tab === "preview");
+        const activeTabName = activePdfTab?.dataset.tab;
+        content.classList.toggle("hide-log", activeTabName === "preview" || activeTabName === "metadata");
     }
 }
 
@@ -355,6 +359,103 @@ function clearPdfPreview() {
     frame.src = "";
 }
 
+function metadataEls() {
+    return {
+        placeholder: document.getElementById("metadataPlaceholder"),
+        form: document.getElementById("metadataForm"),
+        info: document.getElementById("metadataFileInfo"),
+        status: document.getElementById("metadataStatus"),
+        title: document.getElementById("metaTitle"),
+        author: document.getElementById("metaAuthor"),
+        subject: document.getElementById("metaSubject"),
+        keywords: document.getElementById("metaKeywords"),
+        creator: document.getElementById("metaCreator"),
+        producer: document.getElementById("metaProducer"),
+    };
+}
+
+function clearMetadataTool(message = "请先在左侧选择一个 PDF 文件") {
+    const els = metadataEls();
+    els.placeholder.classList.remove("hidden");
+    els.placeholder.innerHTML = `<p>${escapeHtml(message)}</p>`;
+    els.form.classList.add("hidden");
+    ["title", "author", "subject", "keywords", "creator", "producer"].forEach((key) => {
+        els[key].value = "";
+    });
+    els.info.textContent = "";
+    els.status.textContent = "";
+    els.status.className = "metadata-status";
+}
+
+async function loadPdfMetadata() {
+    if (selectedType !== "pdf") {
+        clearMetadataTool();
+        return;
+    }
+    const els = metadataEls();
+    els.placeholder.classList.remove("hidden");
+    els.placeholder.innerHTML = "<p>元数据读取中...</p>";
+    els.form.classList.add("hidden");
+    try {
+        const data = await api("pdf-metadata", {
+            folder: currentPath,
+            file: selectedPath,
+        });
+        if (data.error) {
+            clearMetadataTool(data.error);
+            return;
+        }
+        els.title.value = data.title || "";
+        els.author.value = data.author || "";
+        els.subject.value = data.subject || "";
+        els.keywords.value = data.keywords || "";
+        els.creator.value = data.creator || "";
+        els.producer.value = data.producer || "";
+        els.info.textContent = `${data.name} · ${data.pages} 页`;
+        els.status.textContent = "";
+        els.status.className = "metadata-status";
+        els.placeholder.classList.add("hidden");
+        els.form.classList.remove("hidden");
+    } catch (e) {
+        clearMetadataTool(`元数据读取失败: ${e.message}`);
+    }
+}
+
+async function savePdfMetadata() {
+    if (isRunning) return;
+    if (selectedType !== "pdf") return alert("请先在左侧选择一个 PDF 文件");
+    const els = metadataEls();
+    setButtonsDisabled(true);
+    els.status.textContent = "保存中...";
+    els.status.className = "metadata-status";
+    log("\n=== 开始保存 PDF 元数据 ===\n");
+    const success = await apiStream("pdf-metadata-save", {
+        folder: currentPath,
+        file: selectedPath,
+        metadata: {
+            title: els.title.value,
+            author: els.author.value,
+            subject: els.subject.value,
+            keywords: els.keywords.value,
+            creator: els.creator.value,
+            producer: els.producer.value,
+        },
+    }, (line, replace) => log(line, replace));
+    log(success ? "\n=== 元数据保存完成 ===\n" : "\n=== 元数据保存失败 ===\n");
+    setButtonsDisabled(false);
+    if (success) {
+        await loadPdfMetadata();
+        els.status.textContent = "元数据已保存";
+        els.status.className = "metadata-status success";
+        if (document.querySelector("#pdfPage .tab.active")?.dataset.tab === "preview") {
+            showPdfPreview(selectedPath);
+        }
+    } else {
+        els.status.textContent = "元数据保存失败";
+        els.status.className = "metadata-status error";
+    }
+}
+
 // =====================================================
 // Crop Tool
 // =====================================================
@@ -381,6 +482,10 @@ function clamp(value, min, max) {
 
 function getRatioFromSelect(id) {
     const value = document.getElementById(id).value;
+    return getRatioValue(value);
+}
+
+function getRatioValue(value) {
     const ratios = {
         "1:1": 1,
         a4p: 210 / 297,
@@ -389,6 +494,11 @@ function getRatioFromSelect(id) {
         "4:3": 4 / 3,
     };
     return ratios[value] || null;
+}
+
+function getImageCropRatio() {
+    const active = document.querySelector("#imageCropRatio .segmented-option.active");
+    return getRatioValue(active?.dataset.cropRatio || "free");
 }
 
 function getCropStageSize() {
@@ -820,7 +930,7 @@ function setImageCropBox(rect) {
 }
 
 function imageRectFromDrag(startX, startY, currentX, currentY) {
-    const ratio = getRatioFromSelect("imageCropRatio");
+    const ratio = getImageCropRatio();
     let dx = currentX - startX;
     let dy = currentY - startY;
     let w = Math.abs(dx);
@@ -838,7 +948,7 @@ function imageRectFromDrag(startX, startY, currentX, currentY) {
 }
 
 function imageRectFromResize(handle, startBox, point) {
-    const ratio = getRatioFromSelect("imageCropRatio");
+    const ratio = getImageCropRatio();
     const minSize = 12;
     const left = startBox.x;
     const top = startBox.y;
@@ -881,7 +991,7 @@ function getImageStagePoint(event) {
 
 function initDefaultImageCropBox() {
     const { width, height } = getImageCropStageSize();
-    const ratio = getRatioFromSelect("imageCropRatio");
+    const ratio = getImageCropRatio();
     let w = width * 0.62;
     let h = height * 0.62;
     if (ratio) {
@@ -1283,6 +1393,7 @@ async function navigateTo(path) {
     updateSelectionInfo();
     clearPdfPreview();
     clearCropTool();
+    clearMetadataTool();
     clearImageCropTool();
     clearImageResizeInfo();
 
@@ -1404,8 +1515,12 @@ function renderFileTree(data) {
 
                 if (type === "pdf") {
                     showPdfPreview(path);
+                    if (document.querySelector("#pdfPage .tab.active")?.dataset.tab === "metadata") {
+                        loadPdfMetadata();
+                    }
                 } else {
                     clearPdfPreview();
+                    clearMetadataTool();
                 }
             }
         });
@@ -1725,6 +1840,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("cropZoomResetBtn").addEventListener("click", () => {
         setCropZoomPercent(100);
     });
+    document.getElementById("metadataSaveBtn").addEventListener("click", savePdfMetadata);
+    document.getElementById("metadataReloadBtn").addEventListener("click", loadPdfMetadata);
     bindCropStageEvents();
 
     document.getElementById("imageResizeBtn").addEventListener("click", doImageResize);
@@ -1760,21 +1877,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.getElementById("imageMergeBtn").addEventListener("click", doImageMerge);
     document.getElementById("imageCropSaveBtn").addEventListener("click", saveImageCrop);
-    document.getElementById("imageCropRatio").addEventListener("change", () => {
-        if (imageCropState.loadedPath) {
-            const crop = getNormalizedImageCropBox();
-            if (crop) restoreImageCropBoxFromNormalized(crop);
-            else initDefaultImageCropBox();
-        }
+    document.querySelectorAll("#imageCropRatio .segmented-option").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#imageCropRatio .segmented-option").forEach((option) => {
+                option.classList.toggle("active", option === btn);
+            });
+            if (imageCropState.loadedPath) {
+                const crop = getNormalizedImageCropBox();
+                if (crop) restoreImageCropBoxFromNormalized(crop);
+                else initDefaultImageCropBox();
+            }
+        });
     });
     document.getElementById("imageCropZoom").addEventListener("input", (e) => {
         setImageCropZoomPercent(parseInt(e.target.value));
-    });
-    document.getElementById("imageCropZoomOutBtn").addEventListener("click", () => {
-        setImageCropZoomPercent(Math.round(imageCropState.zoom * 100) - 10);
-    });
-    document.getElementById("imageCropZoomInBtn").addEventListener("click", () => {
-        setImageCropZoomPercent(Math.round(imageCropState.zoom * 100) + 10);
     });
     document.getElementById("imageCropZoomResetBtn").addEventListener("click", () => {
         setImageCropZoomPercent(100);
