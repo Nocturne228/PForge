@@ -1,3 +1,4 @@
+import io
 import re
 from pathlib import Path
 
@@ -68,6 +69,12 @@ def _save_image(image, output_path, quality=90):
     return output_path
 
 
+def _jpeg_bytes(image, quality):
+    buf = io.BytesIO()
+    image.convert("RGB").save(buf, "JPEG", quality=quality, optimize=True)
+    return buf.getvalue()
+
+
 def _load_image(path):
     image = Image.open(path)
     return ImageOps.exif_transpose(image)
@@ -92,7 +99,7 @@ def _print_corrupted(files):
         print(f"  - {p.name}", flush=True)
 
 
-def image_resize(folder_path, file_arg, width, height, mode="pixel"):
+def image_resize(folder_path, file_arg, width, height, mode="pixel", keep_ratio=False, no_enlarge=False):
     root = Path(folder_path).expanduser().resolve()
     image_path = _resolve_image_file(root, file_arg)
 
@@ -110,6 +117,19 @@ def image_resize(folder_path, file_arg, width, height, mode="pixel"):
             target_h = int(height)
             if target_w <= 0 or target_h <= 0:
                 raise ValueError("目标宽高必须大于 0")
+            if keep_ratio:
+                scale = min(target_w / orig_w, target_h / orig_h)
+                if no_enlarge:
+                    scale = min(scale, 1)
+                target_w = max(1, round(orig_w * scale))
+                target_h = max(1, round(orig_h * scale))
+            elif no_enlarge:
+                target_w = min(target_w, orig_w)
+                target_h = min(target_h, orig_h)
+
+        if mode == "percent" and no_enlarge:
+            target_w = min(target_w, orig_w)
+            target_h = min(target_h, orig_h)
 
         resized = image.resize((target_w, target_h), Image.Resampling.LANCZOS)
         output = _available_output_path(
@@ -261,12 +281,15 @@ def image_convert(folder_path, file_arg=None, target_format="png"):
     return result
 
 
-def image_compress(folder_path, file_arg=None, quality=75, max_side=None):
+def image_compress(folder_path, file_arg=None, quality=75, max_side=None, target_kb=None, best_quality=False):
     root = Path(folder_path).expanduser().resolve()
-    quality = int(quality)
+    quality = 95 if best_quality else int(quality)
     if quality < 1 or quality > 100:
         raise ValueError("压缩质量必须在 1 到 100 之间")
     max_side = int(max_side) if max_side else None
+    target_bytes = int(target_kb) * 1024 if target_kb else None
+    if target_bytes is not None and target_bytes <= 0:
+        raise ValueError("目标大小必须大于 0 KB")
     images = [_resolve_image_file(root, file_arg)] if file_arg else _list_images(root)
     if not images:
         print("未找到任何图片文件。", flush=True)
@@ -285,10 +308,35 @@ def image_compress(folder_path, file_arg=None, quality=75, max_side=None):
             if max_side and max(img.size) > max_side:
                 img.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
             output = _available_output_path(_output_dir(root) / f"{image_path.stem}_compressed.jpg")
-            _save_image(img, output, quality=quality)
+            if target_bytes:
+                best = None
+                low, high = 1, quality
+                while low <= high:
+                    mid = (low + high) // 2
+                    data = _jpeg_bytes(img, mid)
+                    if len(data) <= target_bytes:
+                        best = (mid, data)
+                        low = mid + 1
+                    else:
+                        high = mid - 1
+                if best is None:
+                    data = _jpeg_bytes(img, 1)
+                    chosen_quality = 1
+                    print(f"\n  [提示] {image_path.name} 即使最低质量也可能超过目标大小", flush=True)
+                else:
+                    chosen_quality, data = best
+                output.write_bytes(data)
+                print(
+                    f"\r  当前: {image_path.name} -> {output.name} "
+                    f"({output.stat().st_size / 1024:.1f} KB, q={chosen_quality})",
+                    end="\r",
+                    flush=True,
+                )
+            else:
+                _save_image(img, output, quality=quality)
+                print(f"\r  当前: {image_path.name} -> {output.name}", end="\r", flush=True)
             result.success += 1
             result.outputs.append(output)
-            print(f"\r  当前: {image_path.name} -> {output.name}", end="\r", flush=True)
     print(f"\r图片压缩完成，成功 {result.success}/{len(images)} 张", flush=True)
     result.corrupted = corrupted
     _print_corrupted(corrupted)

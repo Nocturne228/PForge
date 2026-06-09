@@ -421,15 +421,25 @@ def do_image_resize():
     data = request.get_json() or {}
     folder = data.get("folder")
     file_arg = data.get("file")
-    width_pct = data.get("width_pct")
-    height_pct = data.get("height_pct")
-    if not folder or not file_arg or width_pct is None or height_pct is None:
-        return jsonify({"error": "缺少必要参数 (folder, file, width_pct, height_pct)"}), 400
+    mode = data.get("mode", "percent")
+    width = data.get("width", data.get("width_pct"))
+    height = data.get("height", data.get("height_pct"))
+    if not folder or not file_arg or width is None or height is None:
+        return jsonify({"error": "缺少必要参数 (folder, file, width, height)"}), 400
     try:
         folder = str(_resolve_allowed_path(folder))
     except (PermissionError, OSError) as exc:
         return _path_error_response(exc)
-    return _stream_task(image_resize, folder, file_arg, float(width_pct), float(height_pct), mode="percent")
+    return _stream_task(
+        image_resize,
+        folder,
+        file_arg,
+        float(width),
+        float(height),
+        mode=mode,
+        keep_ratio=bool(data.get("keep_ratio", False)),
+        no_enlarge=bool(data.get("no_enlarge", False)),
+    )
 
 
 @api_bp.route("/image-merge", methods=["POST"])
@@ -491,6 +501,8 @@ def do_image_compress():
         file_arg,
         int(data.get("quality", 75)),
         data.get("max_side"),
+        data.get("target_kb"),
+        bool(data.get("best_quality", False)),
     )
 
 

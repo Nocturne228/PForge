@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>PDF 处理平台</title>
-    <link rel="stylesheet" href="/static/style.css?v=11">
+    <link rel="stylesheet" href="/static/style.css?v=14">
 </head>
 <body>
     <header>
@@ -276,122 +276,25 @@
                     <button class="tab" data-image-tab="compress">大小压缩</button>
                 </div>
 
-                <div class="tab-panel active" id="image-panel-resize">
-                    <div id="imageResizeCard" class="image-resize-card hidden">
-                        <div class="image-resize-left">
-                            <div class="image-resize-thumb">
-                                <img id="imageResizePreview" alt="预览">
-                            </div>
-                            <div class="image-resize-dims">
-                                原始: <span id="imageResizeOrigW">-</span> x <span id="imageResizeOrigH">-</span> px
-                            </div>
+                <div class="image-preview-pane">
+                    <div class="image-preview-head">
+                        <div>
+                            <span class="image-preview-kicker" id="imagePreviewModeLabel">图片预览</span>
+                            <strong id="imagePreviewName">未选择图片</strong>
                         </div>
-                        <div class="image-resize-right">
-                            <div class="form-group">
-                                <label>目标比例预设</label>
-                                <div class="resize-preset-group">
-                                    <button class="btn btn-sm resize-preset active" data-resize-preset="free">自由拉伸</button>
-                                    <button class="btn btn-sm resize-preset" data-resize-preset="1:1">1:1</button>
-                                    <button class="btn btn-sm resize-preset" data-resize-preset="4:3">4:3</button>
-                                    <button class="btn btn-sm resize-preset" data-resize-preset="16:9">16:9</button>
-                                    <button class="btn btn-sm resize-preset" data-resize-preset="3:4">3:4</button>
-                                    <button class="btn btn-sm resize-preset" data-resize-preset="9:16">9:16</button>
-                                    <button class="btn btn-sm resize-preset" data-resize-preset="a4p">A4竖</button>
-                                    <button class="btn btn-sm resize-preset" data-resize-preset="a4l">A4横</button>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>常用倍率</label>
-                                <div class="resize-preset-group">
-                                    <button class="btn btn-sm resize-scale" data-resize-scale="50">50%</button>
-                                    <button class="btn btn-sm resize-scale" data-resize-scale="75">75%</button>
-                                    <button class="btn btn-sm resize-scale" data-resize-scale="100">100%</button>
-                                    <button class="btn btn-sm resize-scale" data-resize-scale="150">150%</button>
-                                    <button class="btn btn-sm resize-scale" data-resize-scale="200">200%</button>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>宽度 (%)</label>
-                                    <input type="number" id="imageResizeWidthPct" value="100" min="1" max="1000" step="1">
-                                </div>
-                                <div class="form-group form-group-lock">
-                                    <button class="btn btn-sm lock-btn" id="imageResizeLockBtn" title="锁定 / 解锁宽高比">🔗</button>
-                                </div>
-                                <div class="form-group">
-                                    <label>高度 (%)</label>
-                                    <input type="number" id="imageResizeHeightPct" value="100" min="1" max="1000" step="1">
-                                </div>
-                            </div>
-                            <div class="image-resize-summary">
-                                <div>
-                                    <span class="image-resize-summary-label">计算尺寸</span>
-                                    <strong><span id="imageResizeCalcW">-</span> x <span id="imageResizeCalcH">-</span> px</strong>
-                                </div>
-                                <div>
-                                    <span class="image-resize-summary-label">输出比例</span>
-                                    <strong id="imageResizeCalcRatio">-</strong>
-                                </div>
-                            </div>
-                            <div class="action-row">
-                                <button class="btn btn-primary" id="imageResizeBtn">保存拉伸图片</button>
-                                <button class="btn" id="imageResizeResetBtn">重置设置</button>
-                            </div>
-                        </div>
+                        <span class="image-preview-dims">
+                            <span id="imageResizeOrigW">-</span> x <span id="imageResizeOrigH">-</span> px
+                        </span>
                     </div>
-                    <div id="imageResizeNoCard" class="image-resize-nopreview">
+                    <div id="imagePreviewEmpty" class="image-preview-empty">
                         <p>请先在左侧选择一张图片文件</p>
                     </div>
-                </div>
-
-                <div class="tab-panel" id="image-panel-merge">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>合并方式</label>
-                            <select id="imageMergeMode">
-                                <option value="grid">九宫格</option>
-                                <option value="vertical">上下相接长条</option>
-                                <option value="horizontal">左右拼接长条</option>
-                            </select>
-                        </div>
-                        <div class="form-group checkbox-group">
-                            <label>
-                                <input type="checkbox" id="imageMergeBorder">
-                                添加边框 / 间距
-                            </label>
-                        </div>
+                    <div id="imagePreviewFrame" class="image-preview-frame hidden">
+                        <img id="imageResizePreview" alt="图片预览">
                     </div>
-                    <button class="btn btn-primary" id="imageMergeBtn">合并当前目录图片</button>
-                </div>
-
-                <div class="tab-panel" id="image-panel-crop">
-                    <div class="crop-toolbar">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>截取比例</label>
-                                <select id="imageCropRatio">
-                                    <option value="free">自由比例</option>
-                                    <option value="1:1">1:1</option>
-                                    <option value="a4p">A4 竖版</option>
-                                    <option value="a4l">A4 横版</option>
-                                    <option value="16:9">16:9</option>
-                                    <option value="4:3">4:3</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="crop-actions">
-                            <button class="btn btn-primary btn-sm" id="imageCropLoadBtn">加载图片</button>
-                            <button class="btn btn-primary btn-sm" id="imageCropSaveBtn">保存截取 PNG</button>
-                            <button class="btn btn-sm" id="imageCropZoomOutBtn">缩小</button>
-                            <input type="range" id="imageCropZoom" class="crop-zoom" min="50" max="300" value="100" step="10">
-                            <button class="btn btn-sm" id="imageCropZoomInBtn">放大</button>
-                            <button class="btn btn-sm" id="imageCropZoomResetBtn">100%</button>
-                            <span id="imageCropZoomLabel" class="crop-zoom-label">100%</span>
-                        </div>
-                    </div>
-                    <div class="crop-stage-area">
+                    <div id="imageCropPreview" class="image-crop-preview hidden">
                         <div id="imageCropPlaceholder" class="crop-placeholder">
-                            <p>选择一个图片文件后加载并拖拽框选</p>
+                            <p>选择左侧图片后即可拖拽框选</p>
                         </div>
                         <div id="imageCropStageWrap" class="crop-stage-wrap hidden">
                             <div id="imageCropStage" class="crop-stage">
@@ -411,46 +314,154 @@
                     </div>
                 </div>
 
-                <div class="tab-panel" id="image-panel-convert">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>处理范围</label>
-                            <select id="imageConvertScope">
-                                <option value="selected">当前选中图片</option>
-                                <option value="all">当前目录全部图片</option>
-                            </select>
+                <div class="image-panel-stack">
+                    <div class="tab-panel active image-tool-panel" id="image-panel-resize">
+                        <div class="image-tool-header">
+                            <h3>图片拉伸</h3>
                         </div>
                         <div class="form-group">
-                            <label>目标格式</label>
-                            <select id="imageConvertFormat">
-                                <option value="png">PNG</option>
-                                <option value="jpg">JPG</option>
-                                <option value="webp">WEBP</option>
-                            </select>
+                            <label>调整方式</label>
+                            <div class="segmented-control">
+                                <button class="segmented-option active" data-resize-mode="pixel">按像素</button>
+                                <button class="segmented-option" data-resize-mode="percent">按百分比</button>
+                            </div>
+                        </div>
+                        <div class="resize-size-row">
+                            <div class="form-group">
+                                <label id="imageResizeWidthLabel">宽度 (px)</label>
+                                <input type="number" id="imageResizeWidthPct" value="100" min="1" max="20000" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label id="imageResizeHeightLabel">高度 (px)</label>
+                                <input type="number" id="imageResizeHeightPct" value="100" min="1" max="20000" step="1">
+                            </div>
+                        </div>
+                        <div class="checkbox-list resize-checks">
+                            <label><input type="checkbox" id="imageResizeKeepRatio" checked> 保持比例</label>
+                            <label><input type="checkbox" id="imageResizeNoEnlarge"> 不放大</label>
+                        </div>
+                        <div class="image-resize-summary">
+                            <div>
+                                <span class="image-resize-summary-label">输出尺寸</span>
+                                <strong><span id="imageResizeCalcW">-</span> x <span id="imageResizeCalcH">-</span> px</strong>
+                            </div>
+                            <div>
+                                <span class="image-resize-summary-label">输出比例</span>
+                                <strong id="imageResizeCalcRatio">-</strong>
+                            </div>
+                        </div>
+                        <div class="action-row">
+                            <button class="btn btn-primary" id="imageResizeBtn">保存拉伸图片</button>
+                            <button class="btn" id="imageResizeResetBtn">重置设置</button>
                         </div>
                     </div>
-                    <button class="btn btn-primary" id="imageConvertBtn">执行格式转换</button>
-                </div>
 
-                <div class="tab-panel" id="image-panel-compress">
-                    <div class="form-row">
+                    <div class="tab-panel image-tool-panel" id="image-panel-merge">
+                        <div class="image-tool-header">
+                            <h3>图片合并</h3>
+                        </div>
                         <div class="form-group">
-                            <label>处理范围</label>
-                            <select id="imageCompressScope">
-                                <option value="selected">当前选中图片</option>
-                                <option value="all">当前目录全部图片</option>
+                            <label>合并方式</label>
+                            <select id="imageMergeMode">
+                                <option value="grid">九宫格</option>
+                                <option value="vertical">上下相接长条</option>
+                                <option value="horizontal">左右拼接长条</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>质量 (1-100)</label>
-                            <input type="number" id="imageCompressQuality" value="75" min="1" max="100">
+                            <label class="checkbox-inline">
+                                <input type="checkbox" id="imageMergeBorder">
+                                添加边框 / 间距
+                            </label>
+                        </div>
+                        <div class="action-row">
+                            <button class="btn btn-primary" id="imageMergeBtn">合并当前目录图片</button>
+                        </div>
+                    </div>
+
+                    <div class="tab-panel image-tool-panel" id="image-panel-crop">
+                        <div class="image-tool-header">
+                            <h3>图片截取</h3>
+                        </div>
+                        <div class="form-group">
+                            <label>截取比例</label>
+                            <select id="imageCropRatio">
+                                <option value="free">自由比例</option>
+                                <option value="1:1">1:1</option>
+                                <option value="a4p">A4 竖版</option>
+                                <option value="a4l">A4 横版</option>
+                                <option value="16:9">16:9</option>
+                                <option value="4:3">4:3</option>
+                            </select>
+                        </div>
+                        <div class="crop-actions image-crop-actions">
+                            <button class="btn btn-primary btn-sm" id="imageCropSaveBtn">保存截取 PNG</button>
+                            <button class="btn btn-sm" id="imageCropZoomOutBtn">缩小</button>
+                            <input type="range" id="imageCropZoom" class="crop-zoom" min="50" max="300" value="100" step="10">
+                            <button class="btn btn-sm" id="imageCropZoomInBtn">放大</button>
+                            <button class="btn btn-sm" id="imageCropZoomResetBtn">100%</button>
+                            <span id="imageCropZoomLabel" class="crop-zoom-label">100%</span>
+                        </div>
+                    </div>
+
+                    <div class="tab-panel image-tool-panel" id="image-panel-convert">
+                        <div class="image-tool-header">
+                            <h3>格式转换</h3>
+                        </div>
+                        <div class="image-options-grid">
+                            <div class="form-group">
+                                <label>处理范围</label>
+                                <select id="imageConvertScope">
+                                    <option value="selected">当前选中图片</option>
+                                    <option value="all">当前目录全部图片</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>目标格式</label>
+                                <select id="imageConvertFormat">
+                                    <option value="png">PNG</option>
+                                    <option value="jpg">JPG</option>
+                                    <option value="webp">WEBP</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="action-row">
+                            <button class="btn btn-primary" id="imageConvertBtn">执行格式转换</button>
+                        </div>
+                    </div>
+
+                    <div class="tab-panel image-tool-panel" id="image-panel-compress">
+                        <div class="image-tool-header">
+                            <h3>大小压缩</h3>
+                        </div>
+                        <div class="image-options-grid">
+                            <div class="form-group">
+                                <label>处理范围</label>
+                                <select id="imageCompressScope">
+                                    <option value="selected">当前选中图片</option>
+                                    <option value="all">当前目录全部图片</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>质量 (1-100)</label>
+                                <input type="number" id="imageCompressQuality" value="75" min="1" max="100">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>最长边限制 (px，可留空)</label>
                             <input type="number" id="imageCompressMaxSide" min="1" placeholder="不缩放">
                         </div>
+                        <div class="form-group">
+                            <label>压缩到小于 (KB，可留空)</label>
+                            <input type="number" id="imageCompressTargetKb" min="1" placeholder="例如 500">
+                        </div>
+                        <div class="checkbox-list">
+                            <label><input type="checkbox" id="imageCompressBestQuality"> 在目标大小内保持最好质量</label>
+                        </div>
+                        <div class="action-row">
+                            <button class="btn btn-primary" id="imageCompressBtn">执行压缩</button>
+                        </div>
                     </div>
-                    <button class="btn btn-primary" id="imageCompressBtn">执行压缩</button>
                 </div>
             </section>
 
@@ -470,6 +481,6 @@
         </main>
     </div>
 
-    <script src="/static/app.js?v=9"></script>
+    <script src="/static/app.js?v=13"></script>
 </body>
 </html>

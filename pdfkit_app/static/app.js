@@ -42,7 +42,8 @@ let imageCropState = {
 };
 let imageResizeOriginalWidth = 0;
 let imageResizeOriginalHeight = 0;
-let imageResizeLockRatio = false;
+let imageResizeLockRatio = true;
+let imageResizeMode = "pixel";
 let viewMode = "list";
 let lastBrowseData = null;
 let rootPath = "";
@@ -274,8 +275,10 @@ function switchMainPage(pageName) {
     }
 
     const content = document.querySelector(".content");
+    content.classList.toggle("image-mode", pageName === "image");
     if (pageName === "image") {
         content.classList.remove("hide-log");
+        switchImageTab(getActiveImageTab());
     } else {
         const activePdfTab = document.querySelector("#pdfPage .tab.active");
         content.classList.toggle("hide-log", activePdfTab && activePdfTab.dataset.tab === "preview");
@@ -292,6 +295,15 @@ function switchImageTab(tabName) {
     imagePage.querySelectorAll(".tab-panel").forEach((panel) => {
         panel.classList.toggle("active", panel.id === `image-panel-${tabName}`);
     });
+
+    document.getElementById("imagePreviewModeLabel").textContent =
+        tabName === "crop" ? "可视化截取" : "图片预览";
+    document.getElementById("imageCropPreview").classList.toggle("hidden", tabName !== "crop");
+    document.getElementById("imagePreviewFrame").classList.toggle("hidden", tabName === "crop" || !isSelectedImage());
+    document.getElementById("imagePreviewEmpty").classList.toggle("hidden", tabName === "crop" || isSelectedImage());
+    if (tabName === "crop") {
+        ensureImageCropLoaded();
+    }
 }
 
 async function showPdfPreview(filePath) {
@@ -922,8 +934,13 @@ function setImageCropZoomPercent(percent) {
     applyImageCropZoom(percent / 100, true);
 }
 
-async function loadImageCrop() {
-    if (!isSelectedImage()) return alert("请先在左侧选择一个图片文件");
+function ensureImageCropLoaded() {
+    if (!isSelectedImage()) {
+        clearImageCropTool();
+        return;
+    }
+    if (imageCropState.loadedPath === selectedPath) return;
+
     const { placeholder, wrap, img, box } = imageCropEls();
     placeholder.classList.remove("hidden");
     placeholder.innerHTML = "<p>图片加载中...</p>";
@@ -950,7 +967,8 @@ async function saveImageCrop() {
     if (isRunning) return;
     if (!isSelectedImage()) return alert("请先在左侧选择一个图片文件");
     if (!imageCropState.loadedPath || imageCropState.loadedPath !== selectedPath) {
-        return alert("请先加载当前图片");
+        ensureImageCropLoaded();
+        return alert("图片还在加载，请稍后再保存");
     }
     const crop = getNormalizedImageCropBox();
     if (!crop) return alert("请先框选截取区域");
@@ -968,7 +986,7 @@ async function saveImageCrop() {
 function clearImageCropTool() {
     const { placeholder, wrap, img, box } = imageCropEls();
     placeholder.classList.remove("hidden");
-    placeholder.innerHTML = "<p>选择一个图片文件后加载并拖拽框选</p>";
+    placeholder.innerHTML = "<p>选择左侧图片后即可拖拽框选</p>";
     wrap.classList.add("hidden");
     img.removeAttribute("src");
     img.style.width = "";
@@ -1043,13 +1061,12 @@ function loadImageInfoForResize() {
         document.getElementById("imageResizeOrigW").textContent = img.naturalWidth;
         document.getElementById("imageResizeOrigH").textContent = img.naturalHeight;
         document.getElementById("imageResizePreview").src = img.src;
-        document.getElementById("imageResizeCard").classList.remove("hidden");
-        document.getElementById("imageResizeNoCard").classList.add("hidden");
+        document.getElementById("imagePreviewName").textContent = selectedPath.split("/").pop() || "图片预览";
+        document.getElementById("imagePreviewFrame").classList.toggle("hidden", getActiveImageTab() === "crop");
+        document.getElementById("imagePreviewEmpty").classList.add("hidden");
 
-        document.getElementById("imageResizeWidthPct").value = 100;
-        document.getElementById("imageResizeHeightPct").value = 100;
+        setImageResizeMode(imageResizeMode || "pixel");
         updateResizeCalcDisplay();
-        applyResizePreset("free");
     };
     img.onerror = () => clearImageResizeInfo();
     img.src = `/api/image-file?path=${encodeURIComponent(selectedPath)}&v=${Date.now()}`;
@@ -1058,19 +1075,23 @@ function loadImageInfoForResize() {
 function clearImageResizeInfo() {
     imageResizeOriginalWidth = 0;
     imageResizeOriginalHeight = 0;
-    imageResizeLockRatio = false;
-    document.getElementById("imageResizeCard").classList.add("hidden");
-    document.getElementById("imageResizeNoCard").classList.remove("hidden");
+    imageResizeLockRatio = true;
+    document.getElementById("imagePreviewName").textContent = "未选择图片";
+    document.getElementById("imagePreviewEmpty").classList.toggle("hidden", getActiveImageTab() === "crop");
+    document.getElementById("imagePreviewFrame").classList.add("hidden");
     document.getElementById("imageResizePreview").removeAttribute("src");
     document.getElementById("imageResizeOrigW").textContent = "-";
     document.getElementById("imageResizeOrigH").textContent = "-";
     document.getElementById("imageResizeCalcW").textContent = "-";
     document.getElementById("imageResizeCalcH").textContent = "-";
     document.getElementById("imageResizeCalcRatio").textContent = "-";
-    document.getElementById("imageResizeWidthPct").value = 100;
-    document.getElementById("imageResizeHeightPct").value = 100;
-    document.getElementById("imageResizeLockBtn").classList.remove("locked");
-    applyResizePreset("free");
+    document.getElementById("imageResizeKeepRatio").checked = true;
+    setImageResizeMode("pixel");
+}
+
+function getActiveImageTab() {
+    const active = document.querySelector("#imagePage .tab.active");
+    return active ? active.dataset.imageTab : "resize";
 }
 
 function formatOutputRatio(width, height) {
@@ -1087,11 +1108,12 @@ function formatOutputRatio(width, height) {
 }
 
 function updateResizeCalcDisplay() {
-    const wPct = parseFloat(document.getElementById("imageResizeWidthPct").value) || 0;
-    const hPct = parseFloat(document.getElementById("imageResizeHeightPct").value) || 0;
+    const widthValue = parseFloat(document.getElementById("imageResizeWidthPct").value) || 0;
+    const heightValue = parseFloat(document.getElementById("imageResizeHeightPct").value) || 0;
     if (imageResizeOriginalWidth > 0 && imageResizeOriginalHeight > 0) {
-        const w = Math.round(imageResizeOriginalWidth * wPct / 100);
-        const h = Math.round(imageResizeOriginalHeight * hPct / 100);
+        const size = calculateResizeOutput(widthValue, heightValue);
+        const w = size.width;
+        const h = size.height;
         document.getElementById("imageResizeCalcW").textContent = w;
         document.getElementById("imageResizeCalcH").textContent = h;
         document.getElementById("imageResizeCalcRatio").textContent = formatOutputRatio(w, h);
@@ -1102,76 +1124,86 @@ function updateResizeCalcDisplay() {
     }
 }
 
-function applyResizePreset(preset) {
+function calculateResizeOutput(widthValue, heightValue) {
+    if (imageResizeMode === "percent") {
+        let w = Math.round(imageResizeOriginalWidth * widthValue / 100);
+        let h = Math.round(imageResizeOriginalHeight * heightValue / 100);
+        if (document.getElementById("imageResizeNoEnlarge").checked) {
+            w = Math.min(w, imageResizeOriginalWidth);
+            h = Math.min(h, imageResizeOriginalHeight);
+        }
+        return { width: Math.max(1, w), height: Math.max(1, h) };
+    }
+
+    let targetW = Math.max(1, Math.round(widthValue));
+    let targetH = Math.max(1, Math.round(heightValue));
+    if (imageResizeLockRatio) {
+        let scale = Math.min(targetW / imageResizeOriginalWidth, targetH / imageResizeOriginalHeight);
+        if (document.getElementById("imageResizeNoEnlarge").checked) {
+            scale = Math.min(scale, 1);
+        }
+        return {
+            width: Math.max(1, Math.round(imageResizeOriginalWidth * scale)),
+            height: Math.max(1, Math.round(imageResizeOriginalHeight * scale)),
+        };
+    }
+    if (document.getElementById("imageResizeNoEnlarge").checked) {
+        targetW = Math.min(targetW, imageResizeOriginalWidth);
+        targetH = Math.min(targetH, imageResizeOriginalHeight);
+    }
+    return { width: targetW, height: targetH };
+}
+
+function setImageResizeMode(mode) {
+    imageResizeMode = mode;
     const wInput = document.getElementById("imageResizeWidthPct");
     const hInput = document.getElementById("imageResizeHeightPct");
-
-    document.querySelectorAll(".resize-preset").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.resizePreset === preset);
+    document.querySelectorAll("[data-resize-mode]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.resizeMode === mode);
     });
+    const isPercent = mode === "percent";
+    document.getElementById("imageResizeWidthLabel").textContent = isPercent ? "宽度 (%)" : "宽度 (px)";
+    document.getElementById("imageResizeHeightLabel").textContent = isPercent ? "高度 (%)" : "高度 (px)";
+    wInput.max = isPercent ? "1000" : "20000";
+    hInput.max = isPercent ? "1000" : "20000";
 
-    if (preset === "free") {
-        updateResizeCalcDisplay();
-        return;
-    }
-
-    const ratios = {
-        "1:1": 1,
-        "4:3": 4 / 3,
-        "16:9": 16 / 9,
-        "3:4": 3 / 4,
-        "9:16": 9 / 16,
-        "a4p": 210 / 297,
-        "a4l": 297 / 210,
-    };
-    const targetRatio = ratios[preset];
-    if (!targetRatio || imageResizeOriginalWidth <= 0 || imageResizeOriginalHeight <= 0) return;
-
-    const origRatio = imageResizeOriginalWidth / imageResizeOriginalHeight;
-    let wPct, hPct;
-    if (targetRatio >= origRatio) {
-        wPct = 100;
-        hPct = Math.round(1000 * origRatio / targetRatio) / 10;
+    if (imageResizeOriginalWidth > 0 && imageResizeOriginalHeight > 0) {
+        wInput.value = isPercent ? 100 : imageResizeOriginalWidth;
+        hInput.value = isPercent ? 100 : imageResizeOriginalHeight;
     } else {
-        hPct = 100;
-        wPct = Math.round(1000 * targetRatio / origRatio) / 10;
+        wInput.value = isPercent ? 100 : "";
+        hInput.value = isPercent ? 100 : "";
     }
-    wInput.value = wPct;
-    hInput.value = hPct;
     updateResizeCalcDisplay();
 }
 
 function toggleResizeLock() {
-    imageResizeLockRatio = !imageResizeLockRatio;
-    document.getElementById("imageResizeLockBtn").classList.toggle("locked", imageResizeLockRatio);
-}
-
-function applyResizeScale(scale) {
-    const value = Math.max(1, Math.min(1000, parseFloat(scale) || 100));
-    document.getElementById("imageResizeWidthPct").value = value;
-    document.getElementById("imageResizeHeightPct").value = value;
-    applyResizePreset("free");
+    imageResizeLockRatio = document.getElementById("imageResizeKeepRatio").checked;
     updateResizeCalcDisplay();
 }
 
 function resetImageResizeSettings() {
-    imageResizeLockRatio = false;
-    document.getElementById("imageResizeLockBtn").classList.remove("locked");
-    applyResizeScale(100);
+    document.getElementById("imageResizeKeepRatio").checked = true;
+    document.getElementById("imageResizeNoEnlarge").checked = false;
+    imageResizeLockRatio = true;
+    setImageResizeMode("pixel");
 }
 
 async function doImageResize() {
     if (!isSelectedImage()) return alert("请先在左侧选择一个图片文件");
-    const wPct = parseFloat(document.getElementById("imageResizeWidthPct").value);
-    const hPct = parseFloat(document.getElementById("imageResizeHeightPct").value);
-    if (!wPct || !hPct || wPct <= 0 || hPct <= 0) return alert("请输入有效的百分比值");
+    const widthValue = parseFloat(document.getElementById("imageResizeWidthPct").value);
+    const heightValue = parseFloat(document.getElementById("imageResizeHeightPct").value);
+    if (!widthValue || !heightValue || widthValue <= 0 || heightValue <= 0) return alert("请输入有效的尺寸值");
     setButtonsDisabled(true);
     log("\n=== 开始图片拉伸 ===\n");
     const success = await apiStream("image-resize", {
         folder: currentPath,
         file: selectedPath,
-        width_pct: wPct,
-        height_pct: hPct,
+        mode: imageResizeMode,
+        width: widthValue,
+        height: heightValue,
+        keep_ratio: imageResizeLockRatio,
+        no_enlarge: document.getElementById("imageResizeNoEnlarge").checked,
     }, (line, replace) => log(line, replace));
     log(success ? "\n=== 图片拉伸完成 ===\n" : "\n=== 图片拉伸失败 ===\n");
     setButtonsDisabled(false);
@@ -1211,6 +1243,7 @@ async function doImageCompress() {
     const scope = document.getElementById("imageCompressScope").value;
     if (scope === "selected" && !isSelectedImage()) return alert("请先在左侧选择一个图片文件");
     const maxSideValue = document.getElementById("imageCompressMaxSide").value;
+    const targetKbValue = document.getElementById("imageCompressTargetKb").value;
     setButtonsDisabled(true);
     log("\n=== 开始图片压缩 ===\n");
     const success = await apiStream("image-compress", {
@@ -1219,6 +1252,8 @@ async function doImageCompress() {
         scope,
         quality: parseInt(document.getElementById("imageCompressQuality").value),
         max_side: maxSideValue ? parseInt(maxSideValue) : null,
+        target_kb: targetKbValue ? parseInt(targetKbValue) : null,
+        best_quality: document.getElementById("imageCompressBestQuality").checked,
     }, (line, replace) => log(line, replace));
     log(success ? "\n=== 图片压缩完成 ===\n" : "\n=== 图片压缩失败 ===\n");
     setButtonsDisabled(false);
@@ -1359,8 +1394,13 @@ function renderFileTree(data) {
                 selectedType = type;
                 updateSelectionInfo();
                 clearCropTool();
-                clearImageCropTool();
-                loadImageInfoForResize();
+                if (type === "image") {
+                    loadImageInfoForResize();
+                    ensureImageCropLoaded();
+                } else {
+                    clearImageCropTool();
+                    clearImageResizeInfo();
+                }
 
                 if (type === "pdf") {
                     showPdfPreview(path);
@@ -1688,30 +1728,37 @@ document.addEventListener("DOMContentLoaded", () => {
     bindCropStageEvents();
 
     document.getElementById("imageResizeBtn").addEventListener("click", doImageResize);
-    document.querySelectorAll(".resize-preset").forEach(btn => {
-        btn.addEventListener("click", () => applyResizePreset(btn.dataset.resizePreset));
-    });
-    document.querySelectorAll(".resize-scale").forEach(btn => {
-        btn.addEventListener("click", () => applyResizeScale(btn.dataset.resizeScale));
+    document.querySelectorAll("[data-resize-mode]").forEach(btn => {
+        btn.addEventListener("click", () => setImageResizeMode(btn.dataset.resizeMode));
     });
     document.getElementById("imageResizeResetBtn").addEventListener("click", resetImageResizeSettings);
-    document.getElementById("imageResizeLockBtn").addEventListener("click", toggleResizeLock);
+    document.getElementById("imageResizeKeepRatio").addEventListener("change", toggleResizeLock);
+    document.getElementById("imageResizeNoEnlarge").addEventListener("change", updateResizeCalcDisplay);
     document.getElementById("imageResizeWidthPct").addEventListener("input", () => {
         if (imageResizeLockRatio && imageResizeOriginalWidth > 0 && imageResizeOriginalHeight > 0) {
-            const wPct = parseFloat(document.getElementById("imageResizeWidthPct").value) || 0;
-            document.getElementById("imageResizeHeightPct").value = Math.round(wPct * 10) / 10;
+            const widthValue = parseFloat(document.getElementById("imageResizeWidthPct").value) || 0;
+            if (imageResizeMode === "percent") {
+                document.getElementById("imageResizeHeightPct").value = Math.round(widthValue * 10) / 10;
+            } else {
+                document.getElementById("imageResizeHeightPct").value =
+                    Math.max(1, Math.round(widthValue * imageResizeOriginalHeight / imageResizeOriginalWidth));
+            }
         }
         updateResizeCalcDisplay();
     });
     document.getElementById("imageResizeHeightPct").addEventListener("input", () => {
         if (imageResizeLockRatio && imageResizeOriginalWidth > 0 && imageResizeOriginalHeight > 0) {
-            const hPct = parseFloat(document.getElementById("imageResizeHeightPct").value) || 0;
-            document.getElementById("imageResizeWidthPct").value = Math.round(hPct * 10) / 10;
+            const heightValue = parseFloat(document.getElementById("imageResizeHeightPct").value) || 0;
+            if (imageResizeMode === "percent") {
+                document.getElementById("imageResizeWidthPct").value = Math.round(heightValue * 10) / 10;
+            } else {
+                document.getElementById("imageResizeWidthPct").value =
+                    Math.max(1, Math.round(heightValue * imageResizeOriginalWidth / imageResizeOriginalHeight));
+            }
         }
         updateResizeCalcDisplay();
     });
     document.getElementById("imageMergeBtn").addEventListener("click", doImageMerge);
-    document.getElementById("imageCropLoadBtn").addEventListener("click", loadImageCrop);
     document.getElementById("imageCropSaveBtn").addEventListener("click", saveImageCrop);
     document.getElementById("imageCropRatio").addEventListener("change", () => {
         if (imageCropState.loadedPath) {
