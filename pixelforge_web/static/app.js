@@ -62,6 +62,11 @@ function getRatioValue(value) {
     return ratios[value] || null;
 }
 
+function getSegmentedValue(id) {
+    const el = document.querySelector("#" + id + " .segmented-option.active");
+    return el ? el.dataset.value : "";
+}
+
 // =====================================================
 // Initialization & Event Binding
 // =====================================================
@@ -70,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
     rootPath = document.querySelector(".sidebar").dataset.root || "";
     applyTranslations();
     document.querySelector(".content").classList.add("pdf-mode");
+    document.body.classList.add("pdf-mode");
     navigateTo(rootPath);
 
     const langToggle = document.getElementById("langToggle");
@@ -113,12 +119,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    document.getElementById("extractMode").addEventListener("change", (e) => {
-        const isPng = e.target.value === "png";
-        document.getElementById("extractPageGroup").classList.toggle("hidden", !isPng);
-        document.getElementById("extractDpiGroup").classList.toggle("hidden", !isPng);
-        document.getElementById("extractStartGroup").classList.toggle("hidden", isPng);
-        document.getElementById("extractEndGroup").classList.toggle("hidden", isPng);
+    document.querySelectorAll("#extractMode .segmented-option").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#extractMode .segmented-option").forEach(o => o.classList.toggle("active", o === btn));
+            const isPng = btn.dataset.value === "png";
+            document.getElementById("extractPageGroup").classList.toggle("hidden", !isPng);
+            document.getElementById("extractDpiGroup").classList.toggle("hidden", !isPng);
+            document.getElementById("extractStartGroup").classList.toggle("hidden", isPng);
+            document.getElementById("extractEndGroup").classList.toggle("hidden", isPng);
+        });
     });
 
     document.getElementById("metadataSaveBtn").addEventListener("click", savePdfMetadata);
@@ -179,12 +188,26 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("imageCompressBtn").addEventListener("click", doImageCompress);
     bindImageCropEvents();
 
-    document.getElementById("deleteMode").addEventListener("change", (e) => {
-        const mode = e.target.value;
-        document.getElementById("deleteCountGroup").classList.toggle("hidden", mode === "range-se");
-        document.getElementById("deleteStartGroup").classList.toggle("hidden", mode !== "range-se");
-        document.getElementById("deleteEndGroup").classList.toggle("hidden", mode !== "range-se");
-        document.getElementById("deleteBackGroup").classList.toggle("hidden", mode !== "range");
+    document.querySelectorAll("#deleteMode .segmented-option").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#deleteMode .segmented-option").forEach(o => o.classList.toggle("active", o === btn));
+            const mode = btn.dataset.value;
+            document.getElementById("deleteCountGroup").classList.toggle("hidden", mode === "range-se");
+            document.getElementById("deleteBackGroup").classList.toggle("hidden", mode === "range-se");
+            document.getElementById("deleteStartGroup").classList.toggle("hidden", mode !== "range-se");
+            document.getElementById("deleteEndGroup").classList.toggle("hidden", mode !== "range-se");
+        });
+    });
+
+    document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".segmented-control .segmented-option");
+        if (!btn) return;
+        const control = btn.closest(".segmented-control");
+        if (!control) return;
+        const id = control.id;
+        if (id === "extractMode" || id === "deleteMode" || id === "imageCropRatio") return;
+        if (btn.hasAttribute("data-resize-mode")) return;
+        control.querySelectorAll(".segmented-option").forEach(o => o.classList.toggle("active", o === btn));
     });
 
     document.getElementById("resizeBtn").addEventListener("click", doResize);

@@ -32,6 +32,8 @@ function switchMainPage(pageName) {
     const content = document.querySelector(".content");
     content.classList.toggle("pdf-mode", pageName === "pdf");
     content.classList.toggle("image-mode", pageName === "image");
+    document.body.classList.toggle("pdf-mode", pageName === "pdf");
+    document.body.classList.toggle("image-mode", pageName === "image");
     if (pageName === "image") {
         switchImageTab(getActiveImageTab());
     } else {

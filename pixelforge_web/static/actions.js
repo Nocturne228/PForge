@@ -39,7 +39,7 @@ async function doDelete() {
     const folder = currentPath;
     if (!folder) return alert(t("alert.selectDir"));
 
-    const mode = document.getElementById("deleteMode").value;
+    const mode = getSegmentedValue("deleteMode");
 
     const data = { folder };
 
@@ -47,11 +47,12 @@ async function doDelete() {
         const count = parseInt(document.getElementById("deleteCount").value);
         if (!count || count < 1) return alert(t("alert.validPage"));
         data.single = count;
+        data.back = getSegmentedValue("deleteBack") === "back";
     } else if (mode === "range") {
         const count = parseInt(document.getElementById("deleteCount").value);
         if (!count || count < 1) return alert(t("alert.validCount"));
         data.range = count;
-        data.back = document.getElementById("deleteBack").checked;
+        data.back = getSegmentedValue("deleteBack") === "back";
     } else if (mode === "range-se") {
         const start = parseInt(document.getElementById("deleteStart").value);
         const end = parseInt(document.getElementById("deleteEnd").value);
@@ -80,7 +81,7 @@ async function doExtract() {
 
     if (selectedType !== "pdf") return alert(t("alert.selectPdf"));
 
-    const mode = document.getElementById("extractMode").value;
+    const mode = getSegmentedValue("extractMode");
 
     setButtonsDisabled(true);
     log("\n=== 开始页面提取 ===\n");
@@ -91,7 +92,7 @@ async function doExtract() {
             folder,
             file: selectedPath,
             page: parseInt(document.getElementById("extractPage").value),
-            dpi_mode: document.getElementById("extractDpi").value,
+            dpi_mode: getSegmentedValue("extractDpi"),
         }, (line, replace) => log(line, replace));
     } else {
         success = await apiStream("extract-pdf", {
@@ -117,7 +118,7 @@ async function doZip2pdf() {
 
     const data = {
         folder,
-        dpi_mode: document.getElementById("zipDpi").value,
+        dpi_mode: getSegmentedValue("zipDpi"),
     };
 
     if (selectedType === "zip") {
@@ -142,7 +143,7 @@ async function doClean() {
 
     const success = await apiStream("clean", {
         folder,
-        type: document.getElementById("cleanType").value,
+        type: getSegmentedValue("cleanType"),
     }, (line, replace) => log(line, replace));
 
     log(success ? "\n=== 清理完成 ===\n" : "\n=== 清理失败 ===\n");

@@ -448,7 +448,7 @@ async function doImageMerge() {
     log("\n=== 开始图片合并 ===\n");
     const success = await apiStream("image-merge", {
         folder: currentPath,
-        mode: document.getElementById("imageMergeMode").value,
+        mode: getSegmentedValue("imageMergeMode"),
         border: document.getElementById("imageMergeBorder").checked,
     }, (line, replace) => log(line, replace));
     log(success ? "\n=== 图片合并完成 ===\n" : "\n=== 图片合并失败 ===\n");
@@ -457,7 +457,7 @@ async function doImageMerge() {
 }
 
 async function doImageConvert() {
-    const scope = document.getElementById("imageConvertScope").value;
+    const scope = getSegmentedValue("imageConvertScope");
     if (scope === "selected" && !isSelectedImage()) return alert(t("alert.selectImage"));
     setButtonsDisabled(true);
     log("\n=== 开始格式转换 ===\n");
@@ -465,7 +465,7 @@ async function doImageConvert() {
         folder: currentPath,
         file: selectedPath,
         scope,
-        format: document.getElementById("imageConvertFormat").value,
+        format: getSegmentedValue("imageConvertFormat"),
     }, (line, replace) => log(line, replace));
     log(success ? "\n=== 格式转换完成 ===\n" : "\n=== 格式转换失败 ===\n");
     setButtonsDisabled(false);
@@ -473,7 +473,7 @@ async function doImageConvert() {
 }
 
 async function doImageCompress() {
-    const scope = document.getElementById("imageCompressScope").value;
+    const scope = getSegmentedValue("imageCompressScope");
     if (scope === "selected" && !isSelectedImage()) return alert(t("alert.selectImage"));
     const maxSideValue = document.getElementById("imageCompressMaxSide").value;
     const targetKbValue = document.getElementById("imageCompressTargetKb").value;

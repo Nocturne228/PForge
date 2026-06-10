@@ -31,6 +31,32 @@
     --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* --- Theme: PDF Mode (Blue) --- */
+body.pdf-mode {
+    --primary: #0071e3;
+    --primary-light: rgba(0, 113, 227, 0.08);
+    --primary-hover: #0077ed;
+    --primary-rgb: 0, 113, 227;
+    --primary-shadow-sm: rgba(0, 113, 227, 0.2);
+    --primary-shadow-md: rgba(0, 113, 227, 0.3);
+    --primary-shadow-lg: rgba(0, 113, 227, 0.4);
+    --primary-grad-start: #0071e3;
+    --primary-grad-end: #5e5ce6;
+}
+
+/* --- Theme: Image Mode (Violet) --- */
+body.image-mode {
+    --primary: #8b5cf6;
+    --primary-light: rgba(139, 92, 246, 0.08);
+    --primary-hover: #7c3aed;
+    --primary-rgb: 139, 92, 246;
+    --primary-shadow-sm: rgba(139, 92, 246, 0.2);
+    --primary-shadow-md: rgba(139, 92, 246, 0.3);
+    --primary-shadow-lg: rgba(139, 92, 246, 0.4);
+    --primary-grad-start: #8b5cf6;
+    --primary-grad-end: #ec4899;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -92,7 +118,7 @@ header h1 {
 
 .p-toggle:hover .p-badge {
     transform: scale(1.08);
-    box-shadow: 0 3px 14px rgba(0, 113, 227, 0.4);
+    box-shadow: 0 3px 14px var(--primary-shadow-lg);
 }
 
 .p-toggle:focus-visible {
@@ -110,14 +136,14 @@ header h1 {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #0071e3 0%, #5e5ce6 100%);
+    background: linear-gradient(135deg, var(--primary-grad-start) 0%, var(--primary-grad-end) 100%);
     color: white;
     font-size: 22px;
     font-weight: 800;
     letter-spacing: -0.04em;
     line-height: 1;
     padding-bottom: 4px;
-    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+    box-shadow: 0 2px 8px var(--primary-shadow-md);
     flex-shrink: 0;
     transition: transform var(--transition), box-shadow var(--transition);
 }
@@ -150,15 +176,6 @@ header h1 {
     opacity: 0;
     transform: translateY(6px);
     pointer-events: none;
-}
-
-.p-toggle[data-active="image"] .p-badge {
-    background: linear-gradient(135deg, #34c759 0%, #30b0c7 100%);
-    box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
-}
-
-.p-toggle:hover[data-active="image"] .p-badge {
-    box-shadow: 0 3px 14px rgba(52, 199, 89, 0.4);
 }
 
 /* --- Language Toggle --- */
@@ -220,7 +237,7 @@ header h1 {
     height: calc(100% - 4px);
     border-radius: 11px;
     background: var(--primary);
-    box-shadow: 0 1px 3px rgba(0, 113, 227, 0.2);
+    box-shadow: 0 1px 3px var(--primary-shadow-sm);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -423,7 +440,7 @@ header h1 {
 .tree-item.selected {
     background: var(--primary);
     color: white;
-    box-shadow: 0 1px 4px rgba(0, 113, 227, 0.2);
+    box-shadow: 0 1px 4px var(--primary-shadow-sm);
 }
 
 .tree-item .icon {
@@ -704,9 +721,14 @@ header h1 {
 }
 
 .tab.active {
-    color: var(--primary);
-    background: var(--primary-light);
+    color: #ffffff;
+    background: var(--primary);
     font-weight: 600;
+    box-shadow: 0 1px 3px var(--primary-shadow-md);
+}
+
+.tab.active:hover {
+    background: var(--primary-hover);
 }
 
 /* --- Panels --- */
@@ -915,17 +937,17 @@ header h1 {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
-    box-shadow: 0 1px 4px rgba(0, 113, 227, 0.2);
+    box-shadow: 0 1px 4px var(--primary-shadow-sm);
 }
 
 .btn-primary:hover {
     background: var(--primary-hover);
     border-color: var(--primary-hover);
-    box-shadow: 0 3px 10px rgba(0, 113, 227, 0.3);
+    box-shadow: 0 3px 10px var(--primary-shadow-md);
 }
 
 .btn-primary:active {
-    box-shadow: 0 1px 2px rgba(0, 113, 227, 0.2);
+    box-shadow: 0 1px 2px var(--primary-shadow-sm);
 }
 
 .btn-danger {
@@ -1516,13 +1538,25 @@ header h1 {
 }
 
 .segmented-option.active {
-    background: var(--bg-card);
-    color: var(--primary);
-    box-shadow: var(--shadow-sm);
+    background: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 1px 3px var(--primary-shadow-md);
+}
+
+.segmented-option.active:hover {
+    background: var(--primary-hover);
 }
 
 .image-crop-ratio-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.segmented-3col {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.segmented-4col {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .resize-size-row {
