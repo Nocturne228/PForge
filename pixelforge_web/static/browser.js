@@ -12,7 +12,7 @@ async function navigateTo(path) {
         return;
     }
 
-    currentPath = data.path;
+    currentPath = normalizePath(data.path);
     selectedPath = "";
     selectedType = "";
     updateBreadcrumb(data.path);
@@ -34,9 +34,26 @@ function renderFileTree(data) {
 
     let html = "";
 
-    const parentPath = data.path.endsWith("/")
-        ? data.path.slice(0, -1).split("/").slice(0, -1).join("/") || "/"
-        : data.path.split("/").slice(0, -1).join("/") || "/";
+    const curNorm = normalizePath(data.path);
+    const rootNorm = normalizePath(rootPath);
+    let parentPath;
+    if (isRootPath(data.path) || curNorm === "/" || curNorm === "") {
+        parentPath = curNorm;
+    } else if (/^[A-Za-z]:\/?$/.test(curNorm)) {
+        parentPath = curNorm;
+    } else {
+        const lastSlash = curNorm.lastIndexOf("/");
+        if (lastSlash <= 0) {
+            parentPath = curNorm[0] === "/" ? "/" : rootNorm;
+        } else {
+            const parent = curNorm.slice(0, lastSlash);
+            if (/^[A-Za-z]:$/.test(parent)) {
+                parentPath = parent + "/";
+            } else {
+                parentPath = parent;
+            }
+        }
+    }
 
     if (viewMode === "card") {
         if (!isRootPath(data.path) && data.path !== "/" && data.path.length > 1) {
@@ -118,7 +135,7 @@ function renderFileTree(data) {
             } else {
                 treeEl.querySelectorAll(itemSelector).forEach((i) => i.classList.remove("selected"));
                 item.classList.add("selected");
-                selectedPath = path;
+                selectedPath = normalizePath(path);
                 selectedType = type;
                 updateSelectionInfo();
                 if (type === "image") {

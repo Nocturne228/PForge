@@ -2,7 +2,9 @@ __pycache__/
 *.pyc
 .venv/
 .work/
-image_output/
+backup_resize/
+backup_page_ops/
+output_images/
 *.db
 .DS_Store
 /.qoder

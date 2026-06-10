@@ -16,6 +16,7 @@ import sys
 
 from pixelforge_core import (
     DPI_PRESETS,
+    clean_image_outputs,
     clean_page_backups,
     clean_resize_backups,
     clean_zip_files,
@@ -134,16 +135,19 @@ def cmd_zip2pdf(args):
 
 def cmd_clean(args):
     try:
-        if args.type == "x_backup":
+        if args.type == "backup_resize":
             clean_resize_backups(args.folder)
-        elif args.type == "y_backup":
+        elif args.type == "backup_page_ops":
             clean_page_backups(args.folder)
         elif args.type == "zip":
             clean_zip_files(args.folder)
+        elif args.type == "output_images":
+            clean_image_outputs(args.folder)
         elif args.type == "all":
             clean_resize_backups(args.folder)
             clean_page_backups(args.folder)
             clean_zip_files(args.folder)
+            clean_image_outputs(args.folder)
     except Exception as exc:
         print(f"[错误] {exc}", flush=True)
         sys.exit(1)
@@ -165,7 +169,7 @@ def build_parser():
     p_resize.add_argument("-H", "--height", type=float, default=297.0, help="目标高度 mm")
     p_resize.add_argument("--file", help="只处理指定 PDF 文件")
     p_resize.add_argument("--open", action="store_true", help="完成后打开目录")
-    p_resize.add_argument("--clean", action="store_true", help="清理 x_backup")
+    p_resize.add_argument("--clean", action="store_true", help="清理 backup_resize")
     p_resize.set_defaults(func=cmd_resize)
 
     # --- delete ---
@@ -178,7 +182,7 @@ def build_parser():
     p_delete.add_argument("-b", "--back", action="store_true", help="从后往前数（仅配合 -r 使用）")
     p_delete.add_argument("--file", help="只处理指定 PDF 文件")
     p_delete.add_argument("--open", action="store_true", help="完成后打开目录")
-    p_delete.add_argument("--clean", action="store_true", help="清理 y_backup")
+    p_delete.add_argument("--clean", action="store_true", help="清理 backup_page_ops")
     p_delete.set_defaults(func=cmd_delete)
 
     # --- extract-png ---
@@ -211,11 +215,11 @@ def build_parser():
     p_zip.set_defaults(func=cmd_zip2pdf)
 
     # --- clean ---
-    p_clean = sub.add_parser("clean", help="清理备份目录或 ZIP 文件")
+    p_clean = sub.add_parser("clean", help="清理备份目录、输出目录或 ZIP 文件")
     p_clean.add_argument("folder", help="目标文件夹路径")
     p_clean.add_argument(
         "type",
-        choices=["x_backup", "y_backup", "zip", "all"],
+        choices=["backup_resize", "backup_page_ops", "zip", "output_images", "all"],
         help="清理类型",
     )
     p_clean.add_argument("--open", action="store_true", help="完成后打开目录")

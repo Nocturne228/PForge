@@ -20,6 +20,7 @@ from pixelforge_core.pdf import (
     zip_folder,
 )
 from pixelforge_core.image import (
+    clean_image_outputs,
     image_compress,
     image_convert,
     image_crop,
@@ -54,4 +55,5 @@ __all__ = [
     "image_crop",
     "image_convert",
     "image_compress",
+    "clean_image_outputs",
 ]

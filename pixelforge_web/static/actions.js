@@ -131,10 +131,11 @@ async function doZip2pdf() {
     navigateTo(currentPath);
 }
 
-async function doClean() {
+async function doCleanType(cleanType) {
     if (isRunning) return;
     const folder = currentPath;
     if (!folder) return alert(t("alert.selectDir"));
+    if (!cleanType) return;
 
     if (!confirm(t("alert.confirmClean"))) return;
 
@@ -143,7 +144,7 @@ async function doClean() {
 
     const success = await apiStream("clean", {
         folder,
-        type: getSegmentedValue("cleanType"),
+        type: cleanType,
     }, (line, replace) => log(line, replace));
 
     log(success ? "\n=== 清理完成 ===\n" : "\n=== 清理失败 ===\n");

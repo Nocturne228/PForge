@@ -150,10 +150,10 @@ def clean_resize_backups(folder_path):
         raise FileNotFoundError(f"路径不存在或不是一个有效的文件夹 -> {root}")
     dirs = sorted(root.rglob(BACKUP_DIR_RESIZE))
     if not dirs:
-        print("未找到任何 x_backup 备份目录。", flush=True)
+        print(f"未找到任何 {BACKUP_DIR_RESIZE} 备份目录。", flush=True)
         return OperationResult()
     for d in dirs:
         shutil.rmtree(d)
         print(f"已删除备份目录: {d}", flush=True)
-    print(f"\n共清理 {len(dirs)} 个 x_backup 备份目录。", flush=True)
+    print(f"\n共清理 {len(dirs)} 个 {BACKUP_DIR_RESIZE} 备份目录。", flush=True)
     return OperationResult(total=len(dirs), success=len(dirs))

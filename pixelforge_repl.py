@@ -23,6 +23,7 @@ from prompt_toolkit.formatted_text import HTML
 from pixelforge_core import (
     DPI_PRESETS,
     EXCLUDE_DIRS,
+    clean_image_outputs,
     clean_page_backups,
     clean_resize_backups,
     clean_zip_files,
@@ -50,7 +51,7 @@ COMMANDS = {
     "extract-png": "提取单页为 PNG  extract-png --file F --page N [--dpi-mode M]",
     "extract-pdf": "提取页码范围为 PDF  extract-pdf --file F --start N --end M",
     "zip2pdf": "ZIP 转 PDF  zip2pdf [--file F] [--dpi-mode M]",
-    "clean": "清理  clean x_backup|y_backup|zip|all",
+    "clean": "清理  clean backup_resize|backup_page_ops|zip|output_images|all",
     "open": "在 Finder 中打开当前目录",
     "exit": "退出",
     "quit": "退出",
@@ -142,7 +143,7 @@ class PixelForgeCompleter(Completer):
                 pass
 
         if cmd == "clean" and len(tokens) == 2:
-            for t in ["x_backup", "y_backup", "zip", "all"]:
+            for t in ["backup_resize", "backup_page_ops", "zip", "output_images", "all"]:
                 if t.startswith(current):
                     yield Completion(t, start_position=-len(current))
 
@@ -410,22 +411,25 @@ class PixelForgeREPL:
 
     def cmd_clean(self, args):
         if not args:
-            print("请指定清理类型: x_backup, y_backup, zip, all")
+            print("请指定清理类型: backup_resize, backup_page_ops, zip, output_images, all")
             return
 
         clean_type = args[0]
         folder = str(self.cwd)
 
-        if clean_type == "x_backup":
+        if clean_type == "backup_resize":
             clean_resize_backups(folder)
-        elif clean_type == "y_backup":
+        elif clean_type == "backup_page_ops":
             clean_page_backups(folder)
         elif clean_type == "zip":
             clean_zip_files(folder)
+        elif clean_type == "output_images":
+            clean_image_outputs(folder)
         elif clean_type == "all":
             clean_resize_backups(folder)
             clean_page_backups(folder)
             clean_zip_files(folder)
+            clean_image_outputs(folder)
         else:
             print(f"未知清理类型: {clean_type}")
 

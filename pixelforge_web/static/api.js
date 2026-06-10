@@ -18,8 +18,9 @@ function escapeHtml(value) {
 }
 
 function normalizePath(path) {
-    const value = String(path || "");
-    if (value === "/") return "/";
+    let value = String(path == null ? "" : path).replace(/\\/g, "/");
+    if (value === "/" || value === "") return value;
+    if (/^[A-Za-z]:$/.test(value)) return value + "/";
     return value.replace(/\/+$/, "");
 }
 

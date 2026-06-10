@@ -1,16 +1,15 @@
 import io
+import shutil
 from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from pixelforge_core.config import IMAGE_EXTENSIONS
+from pixelforge_core.config import IMAGE_EXTENSIONS, OUTPUT_DIR_IMAGES
 from pixelforge_core.utils import OperationResult, available_output_path, natural_key, resolve_output_path
-
-OUTPUT_DIR_NAME = "image_output"
 
 
 def _output_dir(root):
-    path = Path(root).expanduser().resolve() / OUTPUT_DIR_NAME
+    path = Path(root).expanduser().resolve() / OUTPUT_DIR_IMAGES
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -326,3 +325,18 @@ def image_compress(folder_path, file_arg=None, quality=75, max_side=None, target
     result.corrupted = corrupted
     _print_corrupted(corrupted)
     return result
+
+
+def clean_image_outputs(folder_path):
+    root = Path(folder_path).expanduser().resolve()
+    if not root.exists() or not root.is_dir():
+        raise FileNotFoundError(f"路径不存在或不是一个有效的文件夹 -> {root}")
+    dirs = sorted(root.rglob(OUTPUT_DIR_IMAGES))
+    if not dirs:
+        print(f"未找到任何 {OUTPUT_DIR_IMAGES} 输出目录。", flush=True)
+        return OperationResult()
+    for d in dirs:
+        shutil.rmtree(d)
+        print(f"已删除输出目录: {d}", flush=True)
+    print(f"\n共清理 {len(dirs)} 个 {OUTPUT_DIR_IMAGES} 输出目录。", flush=True)
+    return OperationResult(total=len(dirs), success=len(dirs))

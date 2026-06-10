@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>PixelForge</title>
-    <link rel="stylesheet" href="/static/style.css?v=29">
+    <link rel="stylesheet" href="/static/style.css?v=30">
 </head>
 <body>
     <header>
@@ -67,7 +67,11 @@
                     <button class="tab" data-tab="extract" data-i18n="tab.extract">页面提取</button>
                     <button class="tab" data-tab="metadata" data-i18n="tab.metadata">元数据</button>
                     <button class="tab" data-tab="zip2pdf" data-i18n="tab.zip2pdf">ZIP 转 PDF</button>
-                    <button class="tab" data-tab="clean" data-i18n="tab.clean">清理</button>
+                    <div class="tab-clean">
+                        <button class="btn btn-sm btn-danger clean-btn" data-clean-type="backup_resize" data-i18n="cleanType.backup_resize">清理缩放备份</button>
+                        <button class="btn btn-sm btn-danger clean-btn" data-clean-type="backup_page_ops" data-i18n="cleanType.backup_page_ops">清理页面备份</button>
+                        <button class="btn btn-sm btn-danger clean-btn" data-clean-type="zip" data-i18n="cleanType.zip">清理 ZIP</button>
+                    </div>
                 </div>
 
                 <div class="pdf-preview-pane">
@@ -234,22 +238,6 @@
                             <button class="btn btn-primary" id="zip2pdfBtn" data-i18n="zip2pdfBtn">执行转换</button>
                         </div>
                     </div>
-
-                    <div class="tab-panel pdf-tool-panel" id="panel-clean">
-                        <div class="image-tool-header"><h3 data-i18n="panel-clean.h3">清理</h3></div>
-                        <div class="form-group">
-                            <label data-i18n="cleanType.label">清理类型</label>
-                            <div class="segmented-control segmented-4col" id="cleanType">
-                                <button class="segmented-option active" data-value="x_backup" data-i18n="cleanType.x_backup">缩放备份</button>
-                                <button class="segmented-option" data-value="y_backup" data-i18n="cleanType.y_backup">页面备份</button>
-                                <button class="segmented-option" data-value="zip" data-i18n="cleanType.zip">ZIP</button>
-                                <button class="segmented-option" data-value="all" data-i18n="cleanType.all">全部</button>
-                            </div>
-                        </div>
-                        <div class="action-row">
-                            <button class="btn btn-danger" id="cleanBtn" data-i18n="cleanBtn">执行清理</button>
-                        </div>
-                    </div>
                 </div>
             </section>
 
@@ -260,6 +248,9 @@
                     <button class="tab" data-image-tab="crop" data-i18n="tab.image.crop">图片截取</button>
                     <button class="tab" data-image-tab="convert" data-i18n="tab.image.convert">格式转换</button>
                     <button class="tab" data-image-tab="compress" data-i18n="tab.image.compress">大小压缩</button>
+                    <div class="tab-clean">
+                        <button class="btn btn-sm btn-danger clean-btn" data-clean-type="output_images" data-i18n="cleanType.output_images">清理输出</button>
+                    </div>
                 </div>
 
                 <div class="image-preview-pane">
@@ -453,12 +444,12 @@
         </main>
     </div>
 
-    <script src="/static/translations.js?v=29"></script>
-    <script src="/static/app.js?v=29"></script>
-    <script src="/static/api.js?v=29"></script>
-    <script src="/static/browser.js?v=29"></script>
-    <script src="/static/pdf-preview.js?v=29"></script>
-    <script src="/static/image-tools.js?v=29"></script>
-    <script src="/static/actions.js?v=29"></script>
+    <script src="/static/translations.js?v=30"></script>
+    <script src="/static/app.js?v=30"></script>
+    <script src="/static/api.js?v=30"></script>
+    <script src="/static/browser.js?v=30"></script>
+    <script src="/static/pdf-preview.js?v=30"></script>
+    <script src="/static/image-tools.js?v=30"></script>
+    <script src="/static/actions.js?v=30"></script>
 </body>
 </html>

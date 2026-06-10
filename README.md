@@ -158,10 +158,11 @@ python pixelforge.py zip2pdf ~/archives --dpi-mode color   # 彩色 300 DPI
 #### 清理
 
 ```bash
-python pixelforge.py clean ~/pdfs x_backup   # 缩放备份
-python pixelforge.py clean ~/pdfs y_backup   # 页面操作备份
-python pixelforge.py clean ~/pdfs zip        # ZIP 文件
-python pixelforge.py clean ~/pdfs all        # 全部清理
+python pixelforge.py clean ~/pdfs backup_resize      # 缩放备份
+python pixelforge.py clean ~/pdfs backup_page_ops    # 页面操作备份
+python pixelforge.py clean ~/pdfs zip                # ZIP 文件
+python pixelforge.py clean ~/pdfs output_images      # 图片输出目录
+python pixelforge.py clean ~/pdfs all                # 全部清理
 ```
 
 #### 通用选项
@@ -206,14 +207,15 @@ pixelforge /home/user/pdfs > help
 
 所有写入操作采用「先备份后处理」策略，确保原始文件可恢复：
 
-| 操作 | 备份目录 | 命名规则 |
-|------|----------|----------|
-| 页面缩放 | `x_backup/`（PDF 同级目录） | 与原文件同名 |
-| 页面删除 | `y_backup/`（PDF 同级目录） | 与原文件同名 |
+| 操作 | 目录 | 命名规则 |
+|------|------|----------|
+| 页面缩放 | `backup_resize/`（PDF 同级目录） | 与原文件同名 |
+| 页面删除 | `backup_page_ops/`（PDF 同级目录） | 与原文件同名 |
+| 图片处理 | `output_images/`（图片同级目录） | 按操作类型生成新文件名 |
 
 - 备份目录中已存在同名文件时自动跳过，保证幂等性
 - 处理失败时自动回滚（从备份恢复原文件）
-- 扫描时自动排除 `x_backup/` 和 `y_backup/` 目录
+- 扫描时自动排除 `backup_resize/`、`backup_page_ops/` 和 `output_images/` 目录
 
 ## API 参考
 

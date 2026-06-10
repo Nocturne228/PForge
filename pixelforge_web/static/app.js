@@ -214,7 +214,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("deleteBtn").addEventListener("click", doDelete);
     document.getElementById("extractBtn").addEventListener("click", doExtract);
     document.getElementById("zip2pdfBtn").addEventListener("click", doZip2pdf);
-    document.getElementById("cleanBtn").addEventListener("click", doClean);
+
+    document.querySelectorAll(".tab-clean .clean-btn").forEach(btn => {
+        btn.addEventListener("click", () => doCleanType(btn.dataset.cleanType));
+    });
 
     document.getElementById("openFolderBtn").addEventListener("click", async () => {
         try {

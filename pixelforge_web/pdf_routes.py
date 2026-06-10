@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request, send_file
 
 from pixelforge_core import (
     OperationResult,
+    clean_image_outputs,
     clean_page_backups,
     clean_resize_backups,
     clean_zip_files,
@@ -193,11 +194,11 @@ def do_zip2pdf():
 def do_clean():
     data = request.get_json() or {}
     folder = data.get("folder")
-    clean_type = data.get("type", "x_backup")
+    clean_type = data.get("type", "backup_resize")
 
     if not folder:
         return jsonify({"error": "缺少 folder 参数"}), 400
-    if clean_type not in {"x_backup", "y_backup", "zip", "all"}:
+    if clean_type not in {"backup_resize", "backup_page_ops", "zip", "output_images", "all"}:
         return jsonify({"error": "未知清理类型"}), 400
     try:
         folder = str(resolve_allowed_path(folder))
@@ -205,15 +206,22 @@ def do_clean():
         return path_error_response(exc)
 
     def run():
-        if clean_type == "x_backup":
+        if clean_type == "backup_resize":
             return clean_resize_backups(folder)
-        elif clean_type == "y_backup":
+        elif clean_type == "backup_page_ops":
             return clean_page_backups(folder)
         elif clean_type == "zip":
             return clean_zip_files(folder)
+        elif clean_type == "output_images":
+            return clean_image_outputs(folder)
         elif clean_type == "all":
             result = OperationResult()
-            for clean_func in (clean_resize_backups, clean_page_backups, clean_zip_files):
+            for clean_func in (
+                clean_resize_backups,
+                clean_page_backups,
+                clean_zip_files,
+                clean_image_outputs,
+            ):
                 item = clean_func(folder)
                 if isinstance(item, OperationResult):
                     result.total += item.total
