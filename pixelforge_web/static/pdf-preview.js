@@ -45,6 +45,9 @@ function switchImageTab(tabName) {
 
     const selectedImage = isSelectedImage();
     setImagePreviewMode(!selectedImage ? "empty" : tabName === "crop" ? "crop" : "image");
+    if (selectedImage && typeof syncImagePreviewLayout === "function") {
+        syncImagePreviewLayout();
+    }
     if (tabName === "crop") {
         ensureImageCropLoaded();
     }

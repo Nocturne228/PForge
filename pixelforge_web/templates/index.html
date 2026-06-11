@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>PixelForge</title>
-    <link rel="stylesheet" href="/static/style.css?v=32">
+    <link rel="stylesheet" href="/static/style.css?v=33">
 </head>
 <body>
     <header>
@@ -261,24 +261,18 @@
                         <p data-i18n="imagePreviewEmpty">请先在左侧选择一张图片文件</p>
                     </div>
                     <div id="imagePreviewFrame" class="image-preview-frame hidden">
-                        <img id="imageResizePreview" alt="">
-                    </div>
-                    <div id="imageCropPreview" class="image-crop-preview hidden">
-                        <div id="imageCropPlaceholder" class="crop-placeholder">
-                            <p data-i18n="imageCropPlaceholder">选择左侧图片后即可拖拽框选</p>
-                        </div>
-                        <div id="imageCropStageWrap" class="crop-stage-wrap hidden">
-                            <div id="imageCropStage" class="crop-stage">
-                                <img id="imageCropImage" alt="">
+                        <div id="imagePreviewCanvas" class="image-preview-canvas">
+                            <img id="imageResizePreview" alt="">
+                            <div id="imageCropOverlay" class="image-crop-overlay hidden">
                                 <div id="imageCropBox" class="crop-box hidden">
-                                    <span class="crop-handle crop-handle-nw" data-handle="nw"></span>
-                                    <span class="crop-handle crop-handle-n" data-handle="n"></span>
-                                    <span class="crop-handle crop-handle-ne" data-handle="ne"></span>
-                                    <span class="crop-handle crop-handle-e" data-handle="e"></span>
-                                    <span class="crop-handle crop-handle-se" data-handle="se"></span>
-                                    <span class="crop-handle crop-handle-s" data-handle="s"></span>
-                                    <span class="crop-handle crop-handle-sw" data-handle="sw"></span>
-                                    <span class="crop-handle crop-handle-w" data-handle="w"></span>
+                                    <span class="crop-handle crop-handle-nw" data-crop-handle="nw"></span>
+                                    <span class="crop-handle crop-handle-n" data-crop-handle="n"></span>
+                                    <span class="crop-handle crop-handle-ne" data-crop-handle="ne"></span>
+                                    <span class="crop-handle crop-handle-e" data-crop-handle="e"></span>
+                                    <span class="crop-handle crop-handle-se" data-crop-handle="se"></span>
+                                    <span class="crop-handle crop-handle-s" data-crop-handle="s"></span>
+                                    <span class="crop-handle crop-handle-sw" data-crop-handle="sw"></span>
+                                    <span class="crop-handle crop-handle-w" data-crop-handle="w"></span>
                                 </div>
                             </div>
                         </div>
@@ -441,12 +435,12 @@
         </main>
     </div>
 
-    <script src="/static/translations.js?v=32"></script>
-    <script src="/static/app.js?v=32"></script>
-    <script src="/static/api.js?v=32"></script>
-    <script src="/static/browser.js?v=32"></script>
-    <script src="/static/pdf-preview.js?v=32"></script>
-    <script src="/static/image-tools.js?v=32"></script>
-    <script src="/static/actions.js?v=32"></script>
+    <script src="/static/translations.js?v=33"></script>
+    <script src="/static/app.js?v=33"></script>
+    <script src="/static/api.js?v=33"></script>
+    <script src="/static/browser.js?v=33"></script>
+    <script src="/static/pdf-preview.js?v=33"></script>
+    <script src="/static/image-tools.js?v=33"></script>
+    <script src="/static/actions.js?v=33"></script>
 </body>
 </html>

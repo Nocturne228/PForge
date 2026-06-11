@@ -139,7 +139,6 @@ function renderFileTree(data) {
                 updateSelectionInfo();
                 if (type === "image") {
                     loadImageInfoForResize();
-                    ensureImageCropLoaded();
                 } else {
                     clearImageCropTool();
                     clearImageResizeInfo();

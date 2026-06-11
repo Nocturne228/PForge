@@ -978,72 +978,6 @@ header h1 {
     box-shadow: 0 3px 10px rgba(255, 59, 48, 0.3);
 }
 
-/* --- Crop Tool --- */
-.crop-actions {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 14px;
-}
-
-.crop-toolbar {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    gap: 12px 16px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--border-light);
-    margin-bottom: 14px;
-}
-
-.crop-toolbar .form-row {
-    flex: 0 0 auto;
-    flex-wrap: nowrap;
-    gap: 10px;
-    margin-bottom: 0;
-}
-
-.crop-toolbar .form-group {
-    margin-bottom: 0;
-    min-width: 100px;
-}
-
-.crop-toolbar .form-group label {
-    margin-bottom: 4px;
-}
-
-.crop-toolbar .form-group input[type="number"],
-.crop-toolbar .form-group select {
-    padding: 7px 10px;
-    font-size: 12px;
-}
-
-.crop-toolbar .crop-actions {
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
-}
-
-.crop-stage-area {
-    flex: 1;
-    min-height: 0;
-    overflow: auto;
-    display: flex;
-    flex-direction: column;
-}
-
-.crop-stage-area > .crop-placeholder {
-    flex: 1;
-    min-height: 120px;
-}
-
-.crop-stage-area > .crop-stage-wrap {
-    flex: 1;
-    min-height: 200px;
-}
-
 .crop-zoom {
     width: 160px;
     accent-color: var(--primary);
@@ -1057,38 +991,25 @@ header h1 {
     font-variant-numeric: tabular-nums;
 }
 
-.crop-placeholder {
-    min-height: 120px;
-    border: 1px dashed var(--border);
-    border-radius: var(--radius-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-tertiary);
-    background: var(--bg-input);
-    font-size: 13px;
-}
-
-.crop-stage-wrap {
-    overflow: auto;
-    background: #24262d;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 16px;
-    text-align: center;
-}
-
-.crop-stage {
+.image-preview-canvas {
     position: relative;
     display: inline-block;
-    cursor: crosshair;
+    max-width: none;
+    max-height: none;
     user-select: none;
 }
 
-.crop-stage img {
+.image-preview-canvas img {
     display: block;
+    width: 100%;
     height: auto;
     box-shadow: 0 2px 10px rgba(0,0,0,0.28);
+}
+
+.image-crop-overlay {
+    position: absolute;
+    inset: 0;
+    cursor: crosshair;
 }
 
 .crop-box {
@@ -1243,16 +1164,6 @@ header h1 {
     font-size: 13px;
 }
 
-.crop-placeholder-sm {
-    padding: 16px;
-    text-align: center;
-    color: var(--text-tertiary);
-    background: var(--bg-input);
-    border-radius: var(--radius-sm);
-    border: 1px dashed var(--border);
-    font-size: 13px;
-}
-
 .resize-preset-group {
     display: flex;
     flex-wrap: wrap;
@@ -1375,8 +1286,7 @@ header h1 {
 }
 
 .image-preview-empty,
-.image-preview-frame,
-.image-crop-preview {
+.image-preview-frame {
     flex: 1;
     min-height: 0;
 }
@@ -1390,8 +1300,7 @@ header h1 {
     font-size: 13px;
 }
 
-.image-preview-frame,
-.image-crop-preview {
+.image-preview-frame {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1406,7 +1315,7 @@ header h1 {
     background-position: 0 0, 0 11px, 11px -11px, -11px 0;
 }
 
-.image-preview-frame img {
+.image-preview-frame > img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
@@ -1414,91 +1323,8 @@ header h1 {
 }
 
 .content.image-mode .image-preview-empty.hidden,
-.content.image-mode .image-preview-frame.hidden,
-.content.image-mode .image-crop-preview.hidden {
+.content.image-mode .image-preview-frame.hidden {
     display: none;
-}
-
-.image-crop-preview .crop-placeholder,
-.image-crop-preview .crop-stage-wrap {
-    width: 100%;
-    min-height: 100%;
-}
-
-.image-crop-preview .crop-placeholder {
-    border: 0;
-    background: transparent;
-}
-
-.image-crop-preview .crop-stage-wrap {
-    width: auto;
-    min-height: 0;
-    padding: 0;
-    overflow: visible;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    text-align: center;
-}
-
-.image-crop-preview .crop-box {
-    border: 1px solid rgba(255, 255, 255, 0.96);
-    background: rgba(255, 255, 255, 0.04);
-    box-shadow:
-        0 0 0 9999px rgba(15, 23, 42, 0.24),
-        inset 0 0 0 1px rgba(15, 23, 42, 0.10),
-        0 10px 28px rgba(15, 23, 42, 0.18);
-}
-
-.image-crop-preview .crop-handle {
-    border-color: rgba(255, 255, 255, 0.96);
-    border-radius: 0;
-    background: rgba(255, 255, 255, 0.96);
-    box-shadow: 0 1px 5px rgba(15, 23, 42, 0.16);
-}
-
-.image-crop-preview .crop-handle-n,
-.image-crop-preview .crop-handle-s {
-    width: 36px;
-    height: 4px;
-    border: 0;
-    border-radius: 999px;
-}
-
-.image-crop-preview .crop-handle-e,
-.image-crop-preview .crop-handle-w {
-    width: 4px;
-    height: 36px;
-    border: 0;
-    border-radius: 999px;
-}
-
-.image-crop-preview .crop-handle-nw {
-    width: 18px;
-    height: 18px;
-    border-left-width: 4px;
-    border-top-width: 4px;
-}
-
-.image-crop-preview .crop-handle-ne {
-    width: 18px;
-    height: 18px;
-    border-right-width: 4px;
-    border-top-width: 4px;
-}
-
-.image-crop-preview .crop-handle-se {
-    width: 18px;
-    height: 18px;
-    border-right-width: 4px;
-    border-bottom-width: 4px;
-}
-
-.image-crop-preview .crop-handle-sw {
-    width: 18px;
-    height: 18px;
-    border-left-width: 4px;
-    border-bottom-width: 4px;
 }
 
 .pdf-panel-stack,
@@ -2233,24 +2059,19 @@ header {
 }
 
 .image-preview-frame,
-.image-crop-preview,
 .pdf-preview-pane .preview-placeholder,
 .image-preview-empty,
-.crop-placeholder,
 .metadata-placeholder,
-.image-resize-nopreview,
-.crop-placeholder-sm {
+.image-resize-nopreview {
     background: #f6f7f9;
     border-color: var(--border-light);
 }
 
-.image-preview-frame,
-.image-crop-preview {
+.image-preview-frame {
     background-image: none;
 }
 
-.image-preview-frame img,
-.crop-stage img {
+.image-preview-frame img {
     box-shadow: 0 1px 10px rgba(0, 0, 0, 0.12);
 }
 
@@ -2417,14 +2238,7 @@ header {
     box-shadow: none;
 }
 
-.crop-stage-wrap {
-    background: #17191f;
-    border-color: #242833;
-    border-radius: 7px;
-}
-
-.crop-box,
-.image-crop-preview .crop-box {
+.crop-box {
     border-color: rgba(255, 255, 255, 0.96);
     background: rgba(255, 255, 255, 0.03);
     box-shadow:
@@ -2432,8 +2246,7 @@ header {
         inset 0 0 0 1px rgba(10, 14, 22, 0.14);
 }
 
-.crop-handle,
-.image-crop-preview .crop-handle {
+.crop-handle {
     box-shadow: none;
 }
 

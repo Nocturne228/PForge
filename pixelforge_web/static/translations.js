@@ -104,7 +104,6 @@ var T = {
         "tab.image.compress": "大小压缩",
         // Image preview
         "imagePreviewEmpty": "请先在左侧选择一张图片文件",
-        "imageCropPlaceholder": "选择左侧图片后即可拖拽框选",
         // Image resize
         "image-panel-resize.h3": "图片拉伸",
         "imageResizeMode.label": "调整方式",
@@ -260,7 +259,6 @@ var T = {
         "tab.image.convert": "Convert",
         "tab.image.compress": "Compress",
         "imagePreviewEmpty": "Select an image file on the left",
-        "imageCropPlaceholder": "Select an image to start cropping",
         "image-panel-resize.h3": "Image Resize",
         "imageResizeMode.label": "Resize By",
         "imageResizeMode.pixel": "Pixels",
@@ -365,8 +363,6 @@ function applyTranslations() {
     if (metaPh && lang["metadataPlaceholder"]) metaPh.textContent = lang["metadataPlaceholder"];
     var imgEmpty = document.querySelector("#imagePreviewEmpty p");
     if (imgEmpty && lang["imagePreviewEmpty"]) imgEmpty.textContent = lang["imagePreviewEmpty"];
-    var cropPh = document.querySelector("#imageCropPlaceholder p");
-    if (cropPh && lang["imageCropPlaceholder"]) cropPh.textContent = lang["imageCropPlaceholder"];
 }
 
 function switchLanguage() {

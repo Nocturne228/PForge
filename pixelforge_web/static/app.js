@@ -22,13 +22,15 @@ var currentPath = "";
 var selectedPath = "";
 var selectedType = "";
 var isRunning = false;
-var imageCropState = {
+var imagePreviewState = {
     loadedPath: "",
-    box: null,
-    drag: null,
     naturalWidth: 0,
     naturalHeight: 0,
     baseWidth: 0,
+};
+var imageCropState = {
+    rect: null,
+    drag: null,
     zoom: 1,
 };
 var imageResizeOriginalWidth = 0;
@@ -110,8 +112,10 @@ function setToolTab(pageEl, tabSelector, tabAttr, panelPrefix, tabName) {
 
 function setImagePreviewMode(mode) {
     setHidden("imagePreviewEmpty", mode !== "empty");
-    setHidden("imagePreviewFrame", mode !== "image");
-    setHidden("imageCropPreview", mode !== "crop");
+    setHidden("imagePreviewFrame", mode === "empty");
+    const frame = byId("imagePreviewFrame");
+    if (frame) frame.classList.toggle("crop-mode", mode === "crop");
+    setHidden("imageCropOverlay", mode !== "crop");
 }
 
 // =====================================================
@@ -211,11 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("imageMergeBtn").addEventListener("click", doImageMerge);
     document.getElementById("imageCropSaveBtn").addEventListener("click", saveImageCrop);
     bindSegmentedControl("imageCropRatio", () => {
-        if (imageCropState.loadedPath) {
-            const crop = getNormalizedImageCropBox();
-            if (crop) restoreImageCropBoxFromNormalized(crop);
-            else initDefaultImageCropBox();
-        }
+        updateImageCropRatio();
     });
     document.getElementById("imageCropZoom").addEventListener("input", (e) => {
         setImageCropZoomPercent(parseInt(e.target.value));

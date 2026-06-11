@@ -6,33 +6,67 @@ function isSelectedImage() {
     return selectedType === "image";
 }
 
-function imageCropEls() {
+function imagePreviewEls() {
     return {
-        placeholder: document.getElementById("imageCropPlaceholder"),
-        wrap: document.getElementById("imageCropStageWrap"),
-        stage: document.getElementById("imageCropStage"),
-        img: document.getElementById("imageCropImage"),
+        frame: document.getElementById("imagePreviewFrame"),
+        empty: document.getElementById("imagePreviewEmpty"),
+        canvas: document.getElementById("imagePreviewCanvas"),
+        img: document.getElementById("imageResizePreview"),
+        overlay: document.getElementById("imageCropOverlay"),
         box: document.getElementById("imageCropBox"),
         zoom: document.getElementById("imageCropZoom"),
         zoomLabel: document.getElementById("imageCropZoomLabel"),
     };
 }
 
-function getImageCropStageSize() {
-    const { img } = imageCropEls();
-    return { width: img.clientWidth, height: img.clientHeight };
+function getImagePreviewSize() {
+    const { canvas } = imagePreviewEls();
+    return { width: canvas.clientWidth, height: canvas.clientHeight };
 }
 
-function computeImageCropBaseWidth(natW, natH, wrap) {
-    const availW = Math.max(320, wrap.clientWidth - 34);
-    const availH = Math.max(240, wrap.clientHeight - 34);
+function computeImagePreviewBaseWidth(natW, natH) {
+    const { frame } = imagePreviewEls();
+    const availW = Math.max(320, frame.clientWidth - 36);
+    const availH = Math.max(240, frame.clientHeight - 36);
     if (natW <= availW && natH <= availH) return natW;
     const scale = Math.min(availW / natW, availH / natH);
     return Math.max(320, Math.round(natW * scale));
 }
 
+function setImagePreviewZoom(percent) {
+    const { canvas, zoom, zoomLabel } = imagePreviewEls();
+    const clampedPercent = clamp(percent, 50, 300);
+    imageCropState.zoom = clampedPercent / 100;
+    if (zoom) zoom.value = String(clampedPercent);
+    if (zoomLabel) zoomLabel.textContent = `${clampedPercent}%`;
+    if (imagePreviewState.baseWidth > 0) {
+        canvas.style.width = `${Math.round(imagePreviewState.baseWidth * imageCropState.zoom)}px`;
+    }
+    requestAnimationFrame(() => {
+        renderImageCropBox();
+    });
+}
+
+function resetImagePreviewZoom() {
+    imageCropState.zoom = 1;
+    setImagePreviewZoom(100);
+}
+
+function syncImagePreviewLayout() {
+    if (imagePreviewState.loadedPath !== selectedPath || !imagePreviewState.naturalWidth) return;
+    const crop = getNormalizedImageCropBox();
+    imagePreviewState.baseWidth = computeImagePreviewBaseWidth(
+        imagePreviewState.naturalWidth,
+        imagePreviewState.naturalHeight,
+    );
+    setImagePreviewZoom(Math.round(imageCropState.zoom * 100));
+    if (crop) {
+        requestAnimationFrame(() => restoreImageCropBoxFromNormalized(crop));
+    }
+}
+
 function constrainImageCropRect(rect) {
-    const { width, height } = getImageCropStageSize();
+    const { width, height } = getImagePreviewSize();
     const minSize = 12;
     const w = clamp(rect.w, minSize, width);
     const h = clamp(rect.h, minSize, height);
@@ -44,10 +78,41 @@ function constrainImageCropRect(rect) {
     };
 }
 
-function setImageCropBox(rect) {
-    const { box } = imageCropEls();
+function fitImageCropRatio(rect, ratio) {
+    if (!ratio) return constrainImageCropRect(rect);
+    const { width, height } = getImagePreviewSize();
+    const cx = rect.x + rect.w / 2;
+    const cy = rect.y + rect.h / 2;
+    let w = rect.w;
+    let h = rect.h;
+    if (w / h > ratio) w = h * ratio;
+    else h = w / ratio;
+    if (w > width) {
+        w = width;
+        h = w / ratio;
+    }
+    if (h > height) {
+        h = height;
+        w = h * ratio;
+    }
+    return constrainImageCropRect({ x: cx - w / 2, y: cy - h / 2, w, h });
+}
+
+function setImageCropRect(rect) {
+    imageCropState.rect = constrainImageCropRect(rect);
+    renderImageCropBox();
+}
+
+function renderImageCropBox() {
+    const { box } = imagePreviewEls();
+    if (!box) return;
+    const rect = imageCropState.rect;
+    if (!rect) {
+        box.classList.add("hidden");
+        return;
+    }
     const next = constrainImageCropRect(rect);
-    imageCropState.box = next;
+    imageCropState.rect = next;
     box.style.left = `${next.x}px`;
     box.style.top = `${next.y}px`;
     box.style.width = `${next.w}px`;
@@ -55,39 +120,39 @@ function setImageCropBox(rect) {
     box.classList.remove("hidden");
 }
 
-function imageRectFromDrag(startX, startY, currentX, currentY) {
+function cropRectFromDrag(startX, startY, currentX, currentY) {
     const ratio = getImageCropRatio();
-    let dx = currentX - startX;
-    let dy = currentY - startY;
-    let w = Math.abs(dx);
-    let h = Math.abs(dy);
-    if (ratio && w > 0 && h > 0) {
+    const dx = currentX - startX;
+    const dy = currentY - startY;
+    let w = Math.max(12, Math.abs(dx));
+    let h = Math.max(12, Math.abs(dy));
+    if (ratio) {
         if (w / h > ratio) w = h * ratio;
         else h = w / ratio;
     }
-    return {
+    return constrainImageCropRect({
         x: dx < 0 ? startX - w : startX,
         y: dy < 0 ? startY - h : startY,
         w,
         h,
-    };
+    });
 }
 
-function imageRectFromResize(handle, startBox, point) {
+function cropRectFromResize(handle, startRect, point) {
     const ratio = getImageCropRatio();
     const minSize = 12;
-    const left = startBox.x;
-    const top = startBox.y;
-    const right = startBox.x + startBox.w;
-    const bottom = startBox.y + startBox.h;
+    const left = startRect.x;
+    const top = startRect.y;
+    const right = startRect.x + startRect.w;
+    const bottom = startRect.y + startRect.h;
     const west = handle.includes("w");
     const east = handle.includes("e");
     const north = handle.includes("n");
     const south = handle.includes("s");
     let anchorX = west ? right : left;
     let anchorY = north ? bottom : top;
-    let w = west || east ? Math.max(minSize, Math.abs(point.x - anchorX)) : startBox.w;
-    let h = north || south ? Math.max(minSize, Math.abs(point.y - anchorY)) : startBox.h;
+    let w = west || east ? Math.max(minSize, Math.abs(point.x - anchorX)) : startRect.w;
+    let h = north || south ? Math.max(minSize, Math.abs(point.y - anchorY)) : startRect.h;
 
     if (ratio) {
         if ((west || east) && !(north || south)) h = w / ratio;
@@ -98,42 +163,63 @@ function imageRectFromResize(handle, startBox, point) {
 
     if (!west && !east) anchorX = (left + right) / 2;
     if (!north && !south) anchorY = (top + bottom) / 2;
-    return {
+    return constrainImageCropRect({
         x: west ? anchorX - w : east ? anchorX : anchorX - w / 2,
         y: north ? anchorY - h : south ? anchorY : anchorY - h / 2,
         w,
         h,
-    };
+    });
 }
 
-function getImageStagePoint(event) {
-    const { stage } = imageCropEls();
-    const rect = stage.getBoundingClientRect();
+function getImagePreviewPoint(event) {
+    const { canvas } = imagePreviewEls();
+    const rect = canvas.getBoundingClientRect();
     return {
         x: clamp(event.clientX - rect.left, 0, rect.width),
         y: clamp(event.clientY - rect.top, 0, rect.height),
     };
 }
 
-function initDefaultImageCropBox() {
-    const { width, height } = getImageCropStageSize();
-    setImageCropBox({ x: 0, y: 0, w: width, h: height });
+function resetImageCropSelection() {
+    const { width, height } = getImagePreviewSize();
+    if (!width || !height) {
+        imageCropState.rect = null;
+        renderImageCropBox();
+        return;
+    }
+    const inset = Math.max(12, Math.round(Math.min(width, height) * 0.08));
+    setImageCropRect(fitImageCropRatio({
+        x: inset,
+        y: inset,
+        w: Math.max(12, width - inset * 2),
+        h: Math.max(12, height - inset * 2),
+    }, getImageCropRatio()));
 }
 
 function getNormalizedImageCropBox() {
-    if (!imageCropState.box) return null;
-    const { width, height } = getImageCropStageSize();
+    if (!imageCropState.rect) return null;
+    const { width, height } = getImagePreviewSize();
+    if (!width || !height) return null;
     return {
-        x: imageCropState.box.x / width,
-        y: imageCropState.box.y / height,
-        width: imageCropState.box.w / width,
-        height: imageCropState.box.h / height,
+        x: imageCropState.rect.x / width,
+        y: imageCropState.rect.y / height,
+        width: imageCropState.rect.w / width,
+        height: imageCropState.rect.h / height,
     };
 }
 
+function setImageCropZoomPercent(percent) {
+    const crop = getNormalizedImageCropBox();
+    setImagePreviewZoom(percent);
+    requestAnimationFrame(() => {
+        if (crop) restoreImageCropBoxFromNormalized(crop);
+    });
+}
+
 function restoreImageCropBoxFromNormalized(crop) {
-    const { width, height } = getImageCropStageSize();
-    setImageCropBox({
+    const { width, height } = getImagePreviewSize();
+    if (!crop || !width || !height) return;
+    setImageCropRect({
         x: crop.x * width,
         y: crop.y * height,
         w: crop.width * width,
@@ -141,71 +227,27 @@ function restoreImageCropBoxFromNormalized(crop) {
     });
 }
 
-function applyImageCropZoom(nextZoom, keepSelection = true) {
-    const { stage, img, zoom, zoomLabel } = imageCropEls();
-    const crop = keepSelection ? getNormalizedImageCropBox() : null;
-    const clamped = clamp(nextZoom, 0.5, 3);
-    imageCropState.zoom = clamped;
-    zoom.value = String(Math.round(clamped * 100));
-    zoomLabel.textContent = `${Math.round(clamped * 100)}%`;
-    if (imageCropState.baseWidth > 0) {
-        const displayWidth = Math.round(imageCropState.baseWidth * clamped);
-        img.style.width = `${displayWidth}px`;
-        stage.style.width = `${displayWidth}px`;
-    }
-    requestAnimationFrame(() => {
-        if (crop) restoreImageCropBoxFromNormalized(crop);
-        else if (imageCropState.loadedPath) initDefaultImageCropBox();
-    });
-}
-
-function setImageCropZoomPercent(percent) {
-    applyImageCropZoom(percent / 100, true);
-}
-
 function ensureImageCropLoaded() {
     if (!isSelectedImage()) {
         clearImageCropTool();
         return;
     }
-    if (imageCropState.loadedPath === selectedPath) {
-        const { wrap } = imageCropEls();
-        imageCropState.baseWidth = computeImageCropBaseWidth(
-            imageCropState.naturalWidth,
-            imageCropState.naturalHeight,
-            wrap,
-        );
-        const keepSelection = imageCropState.box && imageCropState.box.w > 12 && imageCropState.box.h > 12;
-        applyImageCropZoom(imageCropState.zoom, keepSelection);
-        return;
-    }
+    if (imagePreviewState.loadedPath !== selectedPath) return;
+    setImagePreviewMode("crop");
+    if (!imageCropState.rect) resetImageCropSelection();
+    else renderImageCropBox();
+}
 
-    const { placeholder, wrap, img, box } = imageCropEls();
-    placeholder.classList.remove("hidden");
-    placeholder.innerHTML = "<p>图片加载中...</p>";
-    wrap.classList.add("hidden");
-    box.classList.add("hidden");
-    imageCropState.loadedPath = "";
-    imageCropState.box = null;
-    img.onload = () => {
-        imageCropState.loadedPath = selectedPath;
-        imageCropState.naturalWidth = img.naturalWidth;
-        imageCropState.naturalHeight = img.naturalHeight;
-        placeholder.classList.add("hidden");
-        wrap.classList.remove("hidden");
-        imageCropState.baseWidth = computeImageCropBaseWidth(img.naturalWidth, img.naturalHeight, wrap);
-        applyImageCropZoom(imageCropState.zoom, false);
-    };
-    img.onerror = () => {
-        placeholder.innerHTML = "<p>图片加载失败</p>";
-    };
-    img.src = `/api/image-file?path=${encodeURIComponent(selectedPath)}&v=${Date.now()}`;
+function updateImageCropRatio() {
+    if (!isSelectedImage() || imagePreviewState.loadedPath !== selectedPath) return;
+    if (!imageCropState.rect) resetImageCropSelection();
+    else setImageCropRect(fitImageCropRatio(imageCropState.rect, getImageCropRatio()));
 }
 
 async function saveImageCrop() {
     if (isRunning) return;
     if (!isSelectedImage()) return alert(t("alert.selectImage"));
-    if (!imageCropState.loadedPath || imageCropState.loadedPath !== selectedPath) {
+    if (imagePreviewState.loadedPath !== selectedPath) {
         ensureImageCropLoaded();
         return alert(t("alert.cropLoading"));
     }
@@ -223,63 +265,54 @@ async function saveImageCrop() {
 }
 
 function clearImageCropTool() {
-    const { placeholder, wrap, img, box } = imageCropEls();
-    placeholder.classList.remove("hidden");
-    placeholder.innerHTML = "<p>选择左侧图片后即可拖拽框选</p>";
-    wrap.classList.add("hidden");
-    img.removeAttribute("src");
-    img.style.width = "";
-    box.classList.add("hidden");
+    const { box, overlay } = imagePreviewEls();
+    if (box) box.classList.add("hidden");
+    if (overlay) overlay.classList.add("hidden");
     imageCropState = {
-        loadedPath: "",
-        box: null,
+        rect: null,
         drag: null,
-        naturalWidth: 0,
-        naturalHeight: 0,
-        baseWidth: 0,
         zoom: 1,
     };
-    document.getElementById("imageCropZoom").value = "100";
-    document.getElementById("imageCropZoomLabel").textContent = "100%";
+    resetImagePreviewZoom();
 }
 
 function bindImageCropEvents() {
-    const { stage, box } = imageCropEls();
-    stage.addEventListener("mousedown", (event) => {
-        if (!imageCropState.loadedPath) return;
+    const { canvas, box } = imagePreviewEls();
+    canvas.addEventListener("mousedown", (event) => {
+        if (!isSelectedImage() || getActiveImageTab() !== "crop") return;
         event.preventDefault();
-        const point = getImageStagePoint(event);
-        const handle = event.target.dataset.handle;
-        if (handle && imageCropState.box) {
-            imageCropState.drag = { mode: "resize", handle, box: { ...imageCropState.box } };
-        } else if (event.target === box && imageCropState.box) {
+        const point = getImagePreviewPoint(event);
+        const handle = event.target.dataset.cropHandle;
+        if (handle && imageCropState.rect) {
+            imageCropState.drag = { mode: "resize", handle, rect: { ...imageCropState.rect } };
+        } else if (event.target === box && imageCropState.rect) {
             imageCropState.drag = {
                 mode: "move",
                 startX: point.x,
                 startY: point.y,
-                box: { ...imageCropState.box },
+                rect: { ...imageCropState.rect },
             };
         } else {
             imageCropState.drag = { mode: "draw", startX: point.x, startY: point.y };
-            setImageCropBox({ x: point.x, y: point.y, w: 12, h: 12 });
+            setImageCropRect({ x: point.x, y: point.y, w: 12, h: 12 });
         }
     });
     window.addEventListener("mousemove", (event) => {
         if (!imageCropState.drag) return;
-        const point = getImageStagePoint(event);
+        const point = getImagePreviewPoint(event);
         if (imageCropState.drag.mode === "move") {
             const dx = point.x - imageCropState.drag.startX;
             const dy = point.y - imageCropState.drag.startY;
-            setImageCropBox({
-                x: imageCropState.drag.box.x + dx,
-                y: imageCropState.drag.box.y + dy,
-                w: imageCropState.drag.box.w,
-                h: imageCropState.drag.box.h,
+            setImageCropRect({
+                x: imageCropState.drag.rect.x + dx,
+                y: imageCropState.drag.rect.y + dy,
+                w: imageCropState.drag.rect.w,
+                h: imageCropState.drag.rect.h,
             });
         } else if (imageCropState.drag.mode === "resize") {
-            setImageCropBox(imageRectFromResize(imageCropState.drag.handle, imageCropState.drag.box, point));
+            setImageCropRect(cropRectFromResize(imageCropState.drag.handle, imageCropState.drag.rect, point));
         } else {
-            setImageCropBox(imageRectFromDrag(imageCropState.drag.startX, imageCropState.drag.startY, point.x, point.y));
+            setImageCropRect(cropRectFromDrag(imageCropState.drag.startX, imageCropState.drag.startY, point.x, point.y));
         }
     });
     window.addEventListener("mouseup", () => {
@@ -294,14 +327,24 @@ function loadImageInfoForResize() {
     }
     const img = new Image();
     img.onload = () => {
-        imageResizeOriginalWidth = img.naturalWidth;
-        imageResizeOriginalHeight = img.naturalHeight;
+        const preview = imagePreviewEls();
+        const cropActive = getActiveImageTab() === "crop";
+        setImagePreviewMode(cropActive ? "crop" : "image");
+        imagePreviewState.loadedPath = selectedPath;
+        imagePreviewState.naturalWidth = img.naturalWidth;
+        imagePreviewState.naturalHeight = img.naturalHeight;
+        imagePreviewState.baseWidth = computeImagePreviewBaseWidth(img.naturalWidth, img.naturalHeight);
+        imageResizeOriginalWidth = imagePreviewState.naturalWidth;
+        imageResizeOriginalHeight = imagePreviewState.naturalHeight;
 
         document.getElementById("imageResizeOrigW").textContent = img.naturalWidth;
         document.getElementById("imageResizeOrigH").textContent = img.naturalHeight;
-        document.getElementById("imageResizePreview").src = img.src;
-        const cropActive = getActiveImageTab() === "crop";
-        setImagePreviewMode(cropActive ? "crop" : "image");
+        preview.img.src = img.src;
+        imageCropState.rect = null;
+        resetImagePreviewZoom();
+        if (cropActive) {
+            requestAnimationFrame(resetImageCropSelection);
+        }
 
         setImageResizeMode(imageResizeMode || "pixel");
         updateResizeCalcDisplay();
@@ -314,8 +357,16 @@ function clearImageResizeInfo() {
     imageResizeOriginalWidth = 0;
     imageResizeOriginalHeight = 0;
     imageResizeLockRatio = true;
+    imagePreviewState = {
+        loadedPath: "",
+        naturalWidth: 0,
+        naturalHeight: 0,
+        baseWidth: 0,
+    };
+    clearImageCropTool();
     setImagePreviewMode("empty");
     document.getElementById("imageResizePreview").removeAttribute("src");
+    document.getElementById("imagePreviewCanvas").style.width = "";
     document.getElementById("imageResizeOrigW").textContent = "-";
     document.getElementById("imageResizeOrigH").textContent = "-";
     document.getElementById("imageResizeCalcW").textContent = "-";
