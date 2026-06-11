@@ -1,5 +1,5 @@
 from pixelforge_core.config import EXCLUDE_DIRS, IMAGE_EXTENSIONS
-from pixelforge_core.utils import OperationResult, open_folder, resolve_dpi as _resolve_dpi_generic
+from pixelforge_core.utils import OperationResult, ProgressLogger, log, open_folder, resolve_dpi as _resolve_dpi_generic
 from pixelforge_core.pdf import (
     DPI_PRESETS,
     clean_page_backups,
@@ -32,6 +32,8 @@ __all__ = [
     "EXCLUDE_DIRS",
     "IMAGE_EXTENSIONS",
     "OperationResult",
+    "ProgressLogger",
+    "log",
     "open_folder",
     "DPI_PRESETS",
     "resolve_dpi",

@@ -1,14 +1,15 @@
-import shutil
 from pathlib import Path
 
 from pdf2image import convert_from_path
 from pypdf import PdfReader, PdfWriter
-from tqdm import tqdm
 
 from pixelforge_core.config import BACKUP_DIR_PAGE_OPS, DPI_PRESETS, EXCLUDE_DIRS
 from pixelforge_core.utils import (
     OperationResult,
     available_output_path,
+    batch_with_backup,
+    clean_dirs_by_name,
+    log,
     resolve_dpi as resolve_dpi_value,
     resolve_output_path,
     resolve_pdf_file,
@@ -85,7 +86,7 @@ def _delete_pdf_pages(
             writer.write(f)
         return True
     except Exception as e:
-        print(f"\n[错误] 文件 {input_path.name} 页面裁剪失败: {e}", flush=True)
+        log.error(f"文件 {input_path.name} 页面裁剪失败: {e}")
         return False
 
 
@@ -114,7 +115,7 @@ def _extract_pdf_page_to_png(pdf_path, page_number, output_path=None, dpi=300):
         raise ValueError(f"未能提取第 {page_number} 页")
 
     images[0].save(output_path, "PNG")
-    print(f"已保存: {output_path}", flush=True)
+    log.done(f"已保存: {output_path}")
     return output_path
 
 
@@ -144,7 +145,7 @@ def _extract_pdf_pages_range(pdf_path, start_page, end_page, output_path=None):
     with open(output_path, "wb") as output_file:
         writer.write(output_file)
 
-    print(f"已保存: {output_path} (第 {start_page} 到 {end_page} 页)", flush=True)
+    log.done(f"已保存: {output_path} (第 {start_page} 到 {end_page} 页)")
     return output_path
 
 
@@ -191,7 +192,7 @@ def _crop_pdf_page_to_png(pdf_path, page_number, crop_box, output_path, dpi=300)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     image.crop((left, top, right, bottom)).save(output_path, "PNG")
-    print(f"已保存裁剪图片: {output_path}", flush=True)
+    log.done(f"已保存裁剪图片: {output_path}")
     return output_path
 
 
@@ -199,77 +200,24 @@ def _batch_delete(all_files, single=None, range_count=None, range_start=None, ra
     if single is None and range_count is None and (range_start is None or range_end is None):
         raise ValueError("请指定 -s/--single、-r/--range 或 --start/--end")
 
-    if not all_files:
-        print("未找到需要处理的 PDF 文件。", flush=True)
-        return OperationResult()
+    def header(files):
+        lines = []
+        if single is not None:
+            lines.append(f"动作: 删除第 {single} 页")
+        elif range_start is not None and range_end is not None:
+            lines.append(f"动作: 删除第 {range_start} 到 {range_end} 页")
+        else:
+            lines.append(f"方向: {'【从后往前数】' if from_back else '【从前往后数】'}")
+            lines.append(f"动作: 删除连续的 {range_count} 页")
+        lines.append(f"PDF 数量: {len(files)}")
+        log.section(lines)
 
-    all_files = sorted(all_files)
+    def process(input_path, output_path):
+        return _delete_pdf_pages(
+            input_path, output_path, single, range_count, range_start, range_end, from_back
+        )
 
-    print("=" * 48, flush=True)
-    if single is not None:
-        print(f"  动作: 删除第 {single} 页", flush=True)
-    elif range_start is not None and range_end is not None:
-        print(f"  动作: 删除第 {range_start} 到 {range_end} 页", flush=True)
-    else:
-        print(f"  方向: {'【从后往前数】' if from_back else '【从前往后数】'}", flush=True)
-        print(f"  动作: 删除连续的 {range_count} 页", flush=True)
-    print(f"  PDF 数量: {len(all_files)}", flush=True)
-    print("=" * 48, flush=True)
-    print("", flush=True)
-
-    result = OperationResult(total=len(all_files))
-
-    for pdf_path in tqdm(all_files, desc="批量剪裁中"):
-        current_backup_dir = pdf_path.parent / BACKUP_DIR_PAGE_OPS
-        backup_path = current_backup_dir / pdf_path.name
-
-        if backup_path.exists():
-            print(f"\n[跳过] 开启保护：{pdf_path.name}", flush=True)
-            print(
-                f"       -> 原因：专属备份目录 {current_backup_dir.name}/ 中已存在同名原文件",
-                flush=True,
-            )
-            result.skipped += 1
-            continue
-
-        try:
-            current_backup_dir.mkdir(exist_ok=True)
-            pdf_path.rename(backup_path)
-
-            status = _delete_pdf_pages(
-                input_path=backup_path,
-                output_path=pdf_path,
-                single=single,
-                range_count=range_count,
-                range_start=range_start,
-                range_end=range_end,
-                from_back=from_back,
-            )
-
-            if status:
-                result.success += 1
-                result.outputs.append(pdf_path)
-            else:
-                result.failed += 1
-                if backup_path.exists():
-                    backup_path.rename(pdf_path)
-
-        except Exception as e:
-            result.failed += 1
-            print(f"\n[系统异常] 无法安全备份或处理 {pdf_path.name}: {e}", flush=True)
-            if backup_path.exists() and not pdf_path.exists():
-                backup_path.rename(pdf_path)
-
-    print("", flush=True)
-    print("=" * 48, flush=True)
-    print("  任务执行完毕报告", flush=True)
-    print("=" * 48, flush=True)
-    print(f"  文件总数 : {result.total}", flush=True)
-    print(f"  成功处理 : {result.success}（原名保存）", flush=True)
-    print(f"  安全跳过 : {result.skipped}（备份目录已存在原文件）", flush=True)
-    print(f"  处理失败 : {result.failed}", flush=True)
-    print("=" * 48, flush=True)
-    return result
+    return batch_with_backup(all_files, BACKUP_DIR_PAGE_OPS, process, header_fn=header, desc="批量剪裁中")
 
 
 def delete_folder(folder_path, single=None, range_count=None, range_start=None, range_end=None, from_back=False):
@@ -279,7 +227,7 @@ def delete_folder(folder_path, single=None, range_count=None, range_start=None, 
 
     all_files = [p for p in root.rglob("*.pdf") if not any(d in p.parts for d in EXCLUDE_DIRS)]
 
-    print(f"  扫描目录: {root}", flush=True)
+    log.info(f"  扫描目录: {root}")
     return _batch_delete(all_files, single, range_count, range_start, range_end, from_back)
 
 
@@ -288,7 +236,7 @@ def delete_file(folder_path, file_arg, single=None, range_count=None, range_star
     if not root.exists() or not root.is_dir():
         raise FileNotFoundError(f"无效的文件夹路径 -> {root}")
     pdf_path = resolve_pdf_file(root, file_arg, EXCLUDE_DIRS)
-    print(f"  指定文件: {pdf_path.relative_to(root)}", flush=True)
+    log.info(f"  指定文件: {pdf_path.relative_to(root)}")
     return _batch_delete([pdf_path], single, range_count, range_start, range_end, from_back)
 
 
@@ -371,20 +319,9 @@ def update_pdf_metadata(folder_path, file_arg, metadata):
         if tmp_path.exists():
             tmp_path.unlink()
 
-    print(f"已更新 PDF 元数据: {pdf_path.name}", flush=True)
+    log.done(f"已更新 PDF 元数据: {pdf_path.name}")
     return OperationResult(total=1, success=1, outputs=[pdf_path])
 
 
 def clean_page_backups(folder_path):
-    root = Path(folder_path).expanduser().resolve()
-    if not root.exists() or not root.is_dir():
-        raise FileNotFoundError(f"无效的文件夹路径 -> {root}")
-    dirs = sorted(root.rglob(BACKUP_DIR_PAGE_OPS))
-    if not dirs:
-        print(f"未找到任何 {BACKUP_DIR_PAGE_OPS} 备份目录。", flush=True)
-        return OperationResult()
-    for d in dirs:
-        shutil.rmtree(d)
-        print(f"已删除备份目录: {d}", flush=True)
-    print(f"\n共清理 {len(dirs)} 个 {BACKUP_DIR_PAGE_OPS} 备份目录。", flush=True)
-    return OperationResult(total=len(dirs), success=len(dirs))
+    return clean_dirs_by_name(folder_path, BACKUP_DIR_PAGE_OPS)

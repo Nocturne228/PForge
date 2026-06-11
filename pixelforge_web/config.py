@@ -63,6 +63,4 @@ def get_allowed_roots(home_dir):
     ]
 
 
-HOME_DIR = get_home_dir()
-ensure_default_dirs(HOME_DIR)
-ALLOWED_ROOTS = get_allowed_roots(HOME_DIR)
+

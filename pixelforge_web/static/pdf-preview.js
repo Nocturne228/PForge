@@ -129,7 +129,7 @@ function clearMetadataTool(message) {
 }
 
 async function loadPdfMetadata() {
-    if (selectedType !== "pdf") {
+    if (PF.selectedType !== "pdf") {
         clearMetadataTool();
         return;
     }
@@ -139,8 +139,8 @@ async function loadPdfMetadata() {
     els.form.classList.add("hidden");
     try {
         const data = await api("pdf-metadata", {
-            folder: currentPath,
-            file: selectedPath,
+            folder: PF.currentPath,
+            file: PF.selectedPath,
         });
         if (data.error) {
             clearMetadataTool(data.error);
@@ -163,16 +163,16 @@ async function loadPdfMetadata() {
 }
 
 async function savePdfMetadata() {
-    if (isRunning) return;
-    if (selectedType !== "pdf") return alert(t("alert.selectPdf"));
+    if (PF.isRunning) return;
+    if (PF.selectedType !== "pdf") return alert(t("alert.selectPdf"));
     const els = metadataEls();
     setButtonsDisabled(true);
     els.status.textContent = t("metadata.saving");
     els.status.className = "metadata-status";
     log("\n=== 开始保存 PDF 元数据 ===\n");
     const success = await apiStream("pdf-metadata-save", {
-        folder: currentPath,
-        file: selectedPath,
+        folder: PF.currentPath,
+        file: PF.selectedPath,
         metadata: {
             title: els.title.value,
             author: els.author.value,
@@ -189,7 +189,7 @@ async function savePdfMetadata() {
         els.status.textContent = t("metadata.saved");
         els.status.className = "metadata-status success";
         if (document.querySelector("#pdfPage .tab.active")?.dataset.tab === "preview") {
-            showPdfPreview(selectedPath);
+            showPdfPreview(PF.selectedPath);
         }
     } else {
         els.status.textContent = t("metadata.saveFailed");

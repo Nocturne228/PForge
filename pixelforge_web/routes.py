@@ -2,10 +2,10 @@ import os
 import threading
 from pathlib import Path
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 
 from pixelforge_core import EXCLUDE_DIRS, open_folder
-from pixelforge_web.config import HOME_DIR, MAX_SCAN_RESULTS, VISIBLE_FILE_EXTENSIONS
+from pixelforge_web.config import MAX_SCAN_RESULTS, VISIBLE_FILE_EXTENSIONS
 from pixelforge_web.route_helpers import resolve_folder_arg
 from pixelforge_web.security import path_error_response, resolve_allowed_path
 from pixelforge_web.streaming import capture
@@ -16,14 +16,14 @@ api_bp = Blueprint("api", __name__)
 
 @main_bp.route("/")
 def index():
-    return render_template("index.html", home=HOME_DIR)
+    return render_template("index.html", home=current_app.config["PIXELFORGE_HOME"])
 
 
 @api_bp.route("/browse", methods=["POST"])
 def browse():
     data = request.get_json() or {}
     try:
-        p = resolve_allowed_path(data.get("path", HOME_DIR))
+        p = resolve_allowed_path(data.get("path", current_app.config["PIXELFORGE_HOME"]))
     except (PermissionError, OSError) as exc:
         return path_error_response(exc)
 
@@ -57,7 +57,7 @@ def browse():
 @api_bp.route("/scan", methods=["POST"])
 def scan():
     data = request.get_json() or {}
-    folder, error = resolve_folder_arg(data.get("path", HOME_DIR))
+    folder, error = resolve_folder_arg(data.get("path", current_app.config["PIXELFORGE_HOME"]))
     if error:
         return error
     p = Path(folder)
@@ -89,7 +89,7 @@ def scan():
 
 @api_bp.route("/home", methods=["GET"])
 def home():
-    return jsonify({"home": HOME_DIR})
+    return jsonify({"home": current_app.config["PIXELFORGE_HOME"]})
 
 
 @api_bp.route("/open-folder", methods=["POST"])

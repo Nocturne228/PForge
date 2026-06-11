@@ -12,9 +12,9 @@ async function navigateTo(path) {
         return;
     }
 
-    currentPath = normalizePath(data.path);
-    selectedPath = "";
-    selectedType = "";
+    PF.currentPath = normalizePath(data.path);
+    PF.selectedPath = "";
+    PF.selectedType = "";
     updateBreadcrumb(data.path);
     updateSelectionInfo();
     clearPdfPreview();
@@ -22,19 +22,19 @@ async function navigateTo(path) {
     clearImageCropTool();
     clearImageResizeInfo();
 
-    lastBrowseData = data;
+    PF.lastBrowseData = data;
     renderFileTree(data);
 }
 
 function renderFileTree(data) {
     const treeEl = document.getElementById("fileTree");
 
-    treeEl.classList.toggle("card-view", viewMode === "card");
+    treeEl.classList.toggle("card-view", PF.viewMode === "card");
 
     let html = "";
 
     const curNorm = normalizePath(data.path);
-    const rootNorm = normalizePath(rootPath);
+    const rootNorm = normalizePath(PF.rootPath);
     let parentPath;
     if (isRootPath(data.path) || curNorm === "/" || curNorm === "") {
         parentPath = curNorm;
@@ -54,7 +54,7 @@ function renderFileTree(data) {
         }
     }
 
-    if (viewMode === "card") {
+    if (PF.viewMode === "card") {
         if (!isRootPath(data.path) && data.path !== "/" && data.path.length > 1) {
             html += `<div class="card-item parent-dir" data-path="${escapeHtml(parentPath)}" data-type="dir">
                 <div class="card-thumb"><span class="card-icon">⬆</span></div>
@@ -122,7 +122,7 @@ function renderFileTree(data) {
 
     treeEl.innerHTML = html;
 
-    const itemSelector = viewMode === "card" ? ".card-item" : ".tree-item";
+    const itemSelector = PF.viewMode === "card" ? ".card-item" : ".tree-item";
 
     treeEl.querySelectorAll(itemSelector).forEach((item) => {
         item.addEventListener("click", () => {
@@ -134,8 +134,8 @@ function renderFileTree(data) {
             } else {
                 treeEl.querySelectorAll(itemSelector).forEach((i) => i.classList.remove("selected"));
                 item.classList.add("selected");
-                selectedPath = normalizePath(path);
-                selectedType = type;
+                PF.selectedPath = normalizePath(path);
+                PF.selectedType = type;
                 updateSelectionInfo();
                 if (type === "image") {
                     loadImageInfoForResize();
@@ -165,20 +165,20 @@ function renderFileTree(data) {
 }
 
 function toggleViewMode() {
-    viewMode = viewMode === "list" ? "card" : "list";
+    PF.viewMode = PF.viewMode === "list" ? "card" : "list";
     const btn = document.getElementById("viewToggleBtn");
-    btn.classList.toggle("active", viewMode === "card");
-    document.querySelector(".sidebar").classList.toggle("card-mode", viewMode === "card");
-    if (lastBrowseData) {
-        renderFileTree(lastBrowseData);
+    btn.classList.toggle("active", PF.viewMode === "card");
+    document.querySelector(".sidebar").classList.toggle("card-mode", PF.viewMode === "card");
+    if (PF.lastBrowseData) {
+        renderFileTree(PF.lastBrowseData);
     }
 }
 
 function updateBreadcrumb(path) {
     const el = document.getElementById("breadcrumb");
-    const normalizedRoot = normalizePath(rootPath);
+    const normalizedRoot = normalizePath(PF.rootPath);
     const normalizedPath = normalizePath(path);
-    let html = `<span data-path="${escapeHtml(rootPath)}">${t("breadcrumb.root")}</span>`;
+    let html = `<span data-path="${escapeHtml(PF.rootPath)}">${t("breadcrumb.root")}</span>`;
     let parts = [];
 
     if (normalizedPath !== normalizedRoot && normalizedRoot === "/") {
@@ -202,7 +202,7 @@ function updateBreadcrumb(path) {
 }
 
 function relativePath(fullPath) {
-    const root = normalizePath(rootPath);
+    const root = normalizePath(PF.rootPath);
     const path = normalizePath(fullPath);
     if (path === root) return "/";
     if (path.startsWith(root + "/")) return path.slice(root.length + 1);
@@ -211,9 +211,9 @@ function relativePath(fullPath) {
 
 function updateSelectionInfo() {
     const el = document.getElementById("selectionInfo");
-    if (!selectedPath) {
+    if (!PF.selectedPath) {
         el.innerHTML = `<p>${t("selectionInfo")}</p>
-            <div class="path">${escapeHtml(relativePath(currentPath))}</div>`;
+            <div class="path">${escapeHtml(relativePath(PF.currentPath))}</div>`;
         return;
     }
 
@@ -225,12 +225,12 @@ function updateSelectionInfo() {
         other: t("selectionInfo.other"),
     };
 
-    el.innerHTML = `<p>${t("selectionInfo.selected")}<strong>${typeLabel[selectedType] || t("selectionInfo.other")}</strong></p>
-        <div class="path">${escapeHtml(relativePath(selectedPath))}</div>`;
+    el.innerHTML = `<p>${t("selectionInfo.selected")}<strong>${typeLabel[PF.selectedType] || t("selectionInfo.other")}</strong></p>
+        <div class="path">${escapeHtml(relativePath(PF.selectedPath))}</div>`;
 }
 
 async function scanDirectory() {
-    const path = currentPath;
+    const path = PF.currentPath;
     if (!path) return;
 
     log(`\n--- 扫描目录: ${path} ---\n`);
@@ -255,7 +255,7 @@ async function scanDirectory() {
 }
 
 async function refreshDirectory() {
-    if (!currentPath) return;
-    await navigateTo(currentPath);
-    log(`刷新目录: ${currentPath}`);
+    if (!PF.currentPath) return;
+    await navigateTo(PF.currentPath);
+    log(`刷新目录: ${PF.currentPath}`);
 }

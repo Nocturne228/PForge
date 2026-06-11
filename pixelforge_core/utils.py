@@ -1,8 +1,11 @@
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from tqdm import tqdm
 
 
 @dataclass
@@ -19,6 +22,49 @@ class OperationResult:
         return self.failed == 0
 
 
+class ProgressLogger:
+    """Structured progress output for core operations."""
+
+    def info(self, msg):
+        print(msg, flush=True)
+
+    def progress(self, msg):
+        print(msg, end="\r", flush=True)
+
+    def error(self, msg):
+        print(f"[错误] {msg}", flush=True)
+
+    def skip(self, name, reason):
+        print(f"\n[跳过] 开启保护：{name}", flush=True)
+        print(f"       -> 原因：{reason}", flush=True)
+
+    def section(self, lines):
+        print("=" * 48, flush=True)
+        for line in lines:
+            print(f"  {line}", flush=True)
+        print("=" * 48, flush=True)
+        print("", flush=True)
+
+    def report(self, result):
+        print("", flush=True)
+        self.section([
+            "任务执行完毕报告",
+            f"文件总数 : {result.total}",
+            f"成功处理 : {result.success}",
+            f"安全跳过 : {result.skipped}",
+            f"处理失败 : {result.failed}",
+        ])
+
+    def done(self, msg):
+        print(msg, flush=True)
+
+    def blank(self):
+        print("", flush=True)
+
+
+log = ProgressLogger()
+
+
 def open_folder(folder_path):
     path = Path(folder_path).expanduser().resolve()
     if not path.is_dir():
@@ -29,7 +75,7 @@ def open_folder(folder_path):
         subprocess.run(["explorer", str(path)], check=True)
     else:
         subprocess.run(["xdg-open", str(path)], check=True)
-    print(f"已打开: {path}", flush=True)
+    log.done(f"已打开: {path}")
 
 
 def resolve_pdf_file(root, file_arg, exclude_dirs):
@@ -87,3 +133,71 @@ def available_output_path(path):
 def natural_key(path):
     """Sort key that orders numeric segments naturally (page1 < page2 < page10)."""
     return [int(x) if x.isdigit() else x.lower() for x in re.split(r"(\d+)", Path(path).name)]
+
+
+def clean_dirs_by_name(root, dir_name):
+    """Recursively delete all subdirectories named dir_name under root.
+
+    Returns OperationResult with count of deleted directories.
+    """
+    root = Path(root).expanduser().resolve()
+    if not root.exists() or not root.is_dir():
+        raise FileNotFoundError(f"路径不存在或不是一个有效的文件夹 -> {root}")
+    dirs = sorted(root.rglob(dir_name))
+    if not dirs:
+        log.info(f"未找到任何 {dir_name} 目录。")
+        return OperationResult()
+    for d in dirs:
+        shutil.rmtree(d)
+        log.done(f"已删除: {d}")
+    log.info(f"\n共清理 {len(dirs)} 个 {dir_name} 目录。")
+    return OperationResult(total=len(dirs), success=len(dirs))
+
+
+def batch_with_backup(files, backup_dir_name, process_fn, *, header_fn=None, desc="处理中"):
+    """Generic backup-then-process batch framework.
+
+    For each file: checks if backup already exists (skip), renames original to
+    backup dir, calls process_fn(backup_path, original_path).  On failure the
+    backup is renamed back to restore the original.
+    """
+    if not files:
+        log.info("未找到需要处理的文件。")
+        return OperationResult()
+
+    files = sorted(files)
+
+    if header_fn:
+        header_fn(files)
+
+    result = OperationResult(total=len(files))
+
+    for file_path in tqdm(files, desc=desc):
+        backup_dir = file_path.parent / backup_dir_name
+        backup_path = backup_dir / file_path.name
+
+        if backup_path.exists():
+            log.skip(file_path.name, f"备份目录 {backup_dir.name}/ 中已存在同名原文件")
+            result.skipped += 1
+            continue
+
+        try:
+            backup_dir.mkdir(exist_ok=True)
+            file_path.rename(backup_path)
+
+            if process_fn(backup_path, file_path):
+                result.success += 1
+                result.outputs.append(file_path)
+            else:
+                result.failed += 1
+                if backup_path.exists():
+                    backup_path.rename(file_path)
+
+        except Exception as e:
+            result.failed += 1
+            log.info(f"\n[系统异常] 无法安全备份或处理 {file_path.name}: {e}")
+            if backup_path.exists() and not file_path.exists():
+                backup_path.rename(file_path)
+
+    log.report(result)
+    return result

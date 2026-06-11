@@ -7,7 +7,12 @@ from tempfile import TemporaryDirectory
 from tqdm import tqdm
 
 from pixelforge_core.config import DPI_PRESETS, IMAGE_EXTENSIONS
-from pixelforge_core.utils import OperationResult, natural_key, resolve_dpi as resolve_dpi_value
+from pixelforge_core.utils import (
+    OperationResult,
+    log,
+    natural_key,
+    resolve_dpi as resolve_dpi_value,
+)
 
 
 def resolve_dpi(mode):
@@ -34,14 +39,14 @@ def _safe_extract(zip_path: Path, out_dir: Path):
                 try:
                     target.relative_to(out_dir.resolve())
                 except ValueError:
-                    print(f"  [跳过] ZIP 内路径越界: {name}", flush=True)
+                    log.info(f"  [跳过] ZIP 内路径越界: {name}")
                     continue
                 target.parent.mkdir(parents=True, exist_ok=True)
 
                 with zf.open(member) as src, open(target, "wb") as dst:
                     dst.write(src.read())
             except Exception as exc:
-                print(f"  [跳过] 解压失败: {member.filename} ({exc})", flush=True)
+                log.info(f"  [跳过] 解压失败: {member.filename} ({exc})")
 
 
 def _find_images(folder: Path):
@@ -124,7 +129,7 @@ def _images_to_pdf(images, output_pdf: Path, dpi=600):
         str(output_pdf),
     ]
 
-    print(f"  正在生成 PDF: {output_pdf.name}", flush=True)
+    log.info(f"  正在生成 PDF: {output_pdf.name}")
     try:
         proc = subprocess.Popen(
             cmd,
@@ -158,10 +163,10 @@ def _images_to_pdf(images, output_pdf: Path, dpi=600):
                 if match:
                     percent = min(int(match.group(1)), 100)
                     if percent > last_percent and (percent == 100 or percent >= last_percent + 10):
-                        print(f"  生成进度: {percent}%", end="\r", flush=True)
+                        log.progress(f"  生成进度: {percent}%")
                         last_percent = percent
                 elif "error" in line.lower() or "unable" in line.lower():
-                    print(f"  [ImageMagick] {line}", flush=True)
+                    log.info(f"  [ImageMagick] {line}")
             else:
                 chunk += char
 
@@ -171,33 +176,27 @@ def _images_to_pdf(images, output_pdf: Path, dpi=600):
         returncode = proc.wait()
         if returncode != 0:
             if last_percent >= 0:
-                print("", flush=True)
-            print(f"[错误] ImageMagick 转换失败，退出码: {returncode}", flush=True)
+                log.blank()
+            log.error(f"ImageMagick 转换失败，退出码: {returncode}")
             for line in tail[-3:]:
-                print(f"  [ImageMagick] {line}", flush=True)
+                log.info(f"  [ImageMagick] {line}")
             return False
 
         if last_percent >= 0:
-            print("", flush=True)
-        print(f"  PDF 生成完成: {output_pdf.name}", flush=True)
+            log.blank()
+        log.done(f"  PDF 生成完成: {output_pdf.name}")
         return True
     except FileNotFoundError:
-        print(
-            "[错误] 未找到 ImageMagick，请先安装 magick 命令（macOS: brew install imagemagick；Ubuntu/Debian: sudo apt install imagemagick）",
-            flush=True,
-        )
+        log.error("未找到 ImageMagick，请先安装 magick 命令（macOS: brew install imagemagick；Ubuntu/Debian: sudo apt install imagemagick）")
         return False
     except Exception as e:
-        print(f"[错误] ImageMagick 转换失败: {e}", flush=True)
+        log.error(f"ImageMagick 转换失败: {e}")
         return False
 
 
 def _process_single_zip(zip_path: Path, dpi=600):
-    print("", flush=True)
-    print("=" * 48, flush=True)
-    print(f"  处理: {zip_path.stem}", flush=True)
-    print(f"  输出 DPI: {dpi}", flush=True)
-    print("=" * 48, flush=True)
+    log.blank()
+    log.section([f"处理: {zip_path.stem}", f"输出 DPI: {dpi}"])
 
     output_pdf = zip_path.with_suffix(".pdf")
 
@@ -208,10 +207,10 @@ def _process_single_zip(zip_path: Path, dpi=600):
         _safe_extract(zip_path, tmp)
 
         images = _find_images(tmp)
-        print(f"  图片总数: {len(images)}", flush=True)
+        log.info(f"  图片总数: {len(images)}")
 
         valid_images = []
-        print("  正在检查图片...", flush=True)
+        log.info("  正在检查图片...")
 
         last_percent = 0
         for index, img in enumerate(images, start=1):
@@ -219,52 +218,45 @@ def _process_single_zip(zip_path: Path, dpi=600):
             if ok:
                 valid_images.append(img)
             else:
-                print(f"  [跳过] 无效图片: {info['file']}", flush=True)
-                print(f"    ├─ 原因: {info['reason']}", flush=True)
-                print(f"    └─ 大小: {info['size']} 字节", flush=True)
+                log.info(f"  [跳过] 无效图片: {info['file']}")
+                log.info(f"    ├─ 原因: {info['reason']}")
+                log.info(f"    └─ 大小: {info['size']} 字节")
             should_report, last_percent = _should_report_progress(index, len(images), last_percent)
             if should_report:
-                print(f"  图片检查进度: {index}/{len(images)} ({last_percent}%)", end="\r", flush=True)
+                log.progress(f"  图片检查进度: {index}/{len(images)} ({last_percent}%)")
 
         if not valid_images:
             if last_percent > 0:
-                print("", flush=True)
-            print("  [错误] 未找到有效图片，跳过。", flush=True)
+                log.blank()
+            log.error("未找到有效图片，跳过。")
             return False
 
         if last_percent > 0:
-            print("", flush=True)
-        print(f"  有效图片: {len(valid_images)}", flush=True)
+            log.blank()
+        log.info(f"  有效图片: {len(valid_images)}")
         return _images_to_pdf(valid_images, output_pdf, dpi=dpi)
 
 
 def _batch_zip(zip_files, dpi=600):
     if not zip_files:
-        print("  未找到任何 ZIP 文件。", flush=True)
+        log.info("  未找到任何 ZIP 文件。")
         return OperationResult()
 
     zip_files = sorted(zip_files)
 
-    print(f"  ZIP 文件数: {len(zip_files)}", flush=True)
-    print(f"  输出 DPI: {dpi}", flush=True)
+    log.info(f"  ZIP 文件数: {len(zip_files)}")
+    log.info(f"  输出 DPI: {dpi}")
 
     result = OperationResult(total=len(zip_files))
     for index, z in enumerate(tqdm(zip_files, desc="ZIP 转 PDF 中"), start=1):
-        print(f"  ZIP 进度: {index}/{len(zip_files)}", flush=True)
+        log.info(f"  ZIP 进度: {index}/{len(zip_files)}")
         if _process_single_zip(z, dpi=dpi):
             result.success += 1
             result.outputs.append(z.with_suffix(".pdf"))
         else:
             result.failed += 1
 
-    print("", flush=True)
-    print("=" * 48, flush=True)
-    print("  任务执行完毕报告", flush=True)
-    print("=" * 48, flush=True)
-    print(f"  文件总数 : {result.total}", flush=True)
-    print(f"  成功转换 : {result.success}", flush=True)
-    print(f"  处理失败 : {result.failed}", flush=True)
-    print("=" * 48, flush=True)
+    log.report(result)
     return result
 
 
@@ -274,7 +266,7 @@ def zip_folder(folder_path, dpi=600):
         raise FileNotFoundError(f"无效的文件夹路径 -> {root}")
 
     zip_files = sorted(root.glob("*.zip"))
-    print(f"  扫描目录: {root}", flush=True)
+    log.info(f"  扫描目录: {root}")
     return _batch_zip(zip_files, dpi=dpi)
 
 
@@ -296,7 +288,7 @@ def zip_file(folder_path, file_arg, dpi=600):
     if not candidate.is_file() or candidate.suffix.lower() != ".zip":
         raise FileNotFoundError(f"ZIP 文件不存在: {candidate}")
 
-    print(f"  指定文件: {candidate.relative_to(root)}", flush=True)
+    log.info(f"  指定文件: {candidate.relative_to(root)}")
     return _batch_zip([candidate], dpi=dpi)
 
 
@@ -306,10 +298,10 @@ def clean_zip_files(folder_path):
         raise FileNotFoundError(f"无效的文件夹路径 -> {root}")
     zips = sorted(root.glob("*.zip"))
     if not zips:
-        print("未找到任何 ZIP 文件。", flush=True)
+        log.info("未找到任何 ZIP 文件。")
         return OperationResult()
     for z in zips:
         z.unlink()
-        print(f"已删除: {z.name}", flush=True)
-    print(f"\n共清理 {len(zips)} 个 ZIP 文件。", flush=True)
+        log.done(f"已删除: {z.name}")
+    log.info(f"\n共清理 {len(zips)} 个 ZIP 文件。")
     return OperationResult(total=len(zips), success=len(zips))

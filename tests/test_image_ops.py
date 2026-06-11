@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from pixelforge_core.image.operations import image_compress, image_convert, image_crop, image_merge, image_resize
+from pixelforge_core.image import image_compress, image_convert, image_crop, image_merge, image_resize
 
 
 class ImageOpsTests(unittest.TestCase):

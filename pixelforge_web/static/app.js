@@ -18,28 +18,21 @@ window.addEventListener("unhandledrejection", function (e) {
 // =====================================================
 // State
 // =====================================================
-var currentPath = "";
-var selectedPath = "";
-var selectedType = "";
-var isRunning = false;
-var imagePreviewState = {
-    loadedPath: "",
-    naturalWidth: 0,
-    naturalHeight: 0,
-    baseWidth: 0,
+var PF = {
+    currentPath: "",
+    selectedPath: "",
+    selectedType: "",
+    isRunning: false,
+    imagePreviewState: { loadedPath: "", naturalWidth: 0, naturalHeight: 0, baseWidth: 0 },
+    imageCropState: { rect: null, drag: null, zoom: 1 },
+    imageResizeOriginalWidth: 0,
+    imageResizeOriginalHeight: 0,
+    imageResizeLockRatio: true,
+    imageResizeMode: "pixel",
+    viewMode: "list",
+    lastBrowseData: null,
+    rootPath: "",
 };
-var imageCropState = {
-    rect: null,
-    drag: null,
-    zoom: 1,
-};
-var imageResizeOriginalWidth = 0;
-var imageResizeOriginalHeight = 0;
-var imageResizeLockRatio = true;
-var imageResizeMode = "pixel";
-var viewMode = "list";
-var lastBrowseData = null;
-var rootPath = "";
 
 // =====================================================
 // Shared Helpers
@@ -51,6 +44,25 @@ function clamp(value, min, max) {
 
 function byId(id) {
     return document.getElementById(id);
+}
+
+function numberValue(id, fallback = 0) {
+    const value = parseFloat(byId(id)?.value);
+    return Number.isFinite(value) ? value : fallback;
+}
+
+function intValue(id, fallback = 0) {
+    const value = parseInt(byId(id)?.value, 10);
+    return Number.isFinite(value) ? value : fallback;
+}
+
+function boolValue(id) {
+    return Boolean(byId(id)?.checked);
+}
+
+function setText(id, value) {
+    const el = byId(id);
+    if (el) el.textContent = value;
 }
 
 function setHidden(elOrId, hidden) {
@@ -81,7 +93,7 @@ function bindSegmentedControl(id, onChange, valueAttr = "value") {
 }
 
 function isRootPath(path) {
-    return normalizePath(path) === normalizePath(rootPath);
+    return normalizePath(path) === normalizePath(PF.rootPath);
 }
 
 function getRatioValue(value) {
@@ -118,58 +130,54 @@ function setImagePreviewMode(mode) {
     setHidden("imageCropOverlay", mode !== "crop");
 }
 
-// =====================================================
-// Initialization & Event Binding
-// =====================================================
+async function runToolAction({ start, success, failure, endpoint, payload, after, stream = true }) {
+    if (PF.isRunning) return false;
+    setButtonsDisabled(true);
+    if (start) log(`\n=== ${start} ===\n`);
+    const ok = stream
+        ? await apiStream(endpoint, payload, (line, replace) => log(line, replace))
+        : Boolean(await endpoint(payload));
+    if (success || failure) log(ok ? `\n=== ${success} ===\n` : `\n=== ${failure} ===\n`);
+    setButtonsDisabled(false);
+    if (after) await after(ok);
+    return ok;
+}
 
-document.addEventListener("DOMContentLoaded", () => {
-    rootPath = document.querySelector(".sidebar").dataset.root || "";
-    applyTranslations();
-    document.querySelector(".content").classList.add("pdf-mode");
-    document.body.classList.add("pdf-mode");
-    navigateTo(rootPath);
-
-    const langToggle = document.getElementById("langToggle");
+function bindMainNavigation() {
+    const langToggle = byId("langToggle");
     langToggle.addEventListener("click", switchLanguage);
     langToggle.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); switchLanguage(); }
     });
 
-    document.getElementById("rootBtn").addEventListener("click", () => {
-        navigateTo(rootPath);
-    });
+    byId("rootBtn").addEventListener("click", () => navigateTo(PF.rootPath));
+    byId("scanBtn").addEventListener("click", scanDirectory);
+    byId("refreshBtn").addEventListener("click", refreshDirectory);
+    byId("viewToggleBtn").addEventListener("click", toggleViewMode);
 
-    document.getElementById("scanBtn").addEventListener("click", scanDirectory);
-    document.getElementById("refreshBtn").addEventListener("click", refreshDirectory);
-
-    document.getElementById("viewToggleBtn").addEventListener("click", toggleViewMode);
-
-    document.getElementById("modePill").addEventListener("click", () => {
+    const toggleMode = () => {
         const current = document.querySelector(".p-suffix-text.active")?.dataset.page;
         switchMainPage(current === "pdf" ? "image" : "pdf");
-    });
-    document.getElementById("modePill").addEventListener("keydown", (e) => {
+    };
+    byId("modePill").addEventListener("click", toggleMode);
+    byId("modePill").addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            const current = document.querySelector(".p-suffix-text.active")?.dataset.page;
-            switchMainPage(current === "pdf" ? "image" : "pdf");
+            toggleMode();
         }
     });
+}
 
-    const pdfPage = document.getElementById("pdfPage");
-    pdfPage.querySelectorAll(".tab").forEach((tab) => {
-        tab.addEventListener("click", () => {
-            switchToTab(tab.dataset.tab);
-        });
+function bindPageTabs() {
+    byId("pdfPage").querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => switchToTab(tab.dataset.tab));
     });
-
-    const imagePage = document.getElementById("imagePage");
-    imagePage.querySelectorAll(".tab").forEach((tab) => {
-        tab.addEventListener("click", () => {
-            switchImageTab(tab.dataset.imageTab);
-        });
+    byId("imagePage").querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => switchImageTab(tab.dataset.imageTab));
     });
+}
 
+function bindPdfToolControls() {
     bindSegmentedControl("extractMode", (mode) => {
         const isPng = mode === "png";
         setHidden("extractPageGroup", !isPng);
@@ -177,56 +185,6 @@ document.addEventListener("DOMContentLoaded", () => {
         setHidden("extractStartGroup", isPng);
         setHidden("extractEndGroup", isPng);
     });
-
-    document.getElementById("metadataSaveBtn").addEventListener("click", savePdfMetadata);
-    document.getElementById("metadataReloadBtn").addEventListener("click", loadPdfMetadata);
-
-    document.getElementById("imageResizeBtn").addEventListener("click", doImageResize);
-    document.querySelectorAll("[data-resize-mode]").forEach(btn => {
-        btn.addEventListener("click", () => setImageResizeMode(btn.dataset.resizeMode));
-    });
-    document.getElementById("imageResizeResetBtn").addEventListener("click", resetImageResizeSettings);
-    document.getElementById("imageResizeKeepRatio").addEventListener("change", toggleResizeLock);
-    document.getElementById("imageResizeNoEnlarge").addEventListener("change", updateResizeCalcDisplay);
-    document.getElementById("imageResizeWidthPct").addEventListener("input", () => {
-        if (imageResizeLockRatio && imageResizeOriginalWidth > 0 && imageResizeOriginalHeight > 0) {
-            const widthValue = parseFloat(document.getElementById("imageResizeWidthPct").value) || 0;
-            if (imageResizeMode === "percent") {
-                document.getElementById("imageResizeHeightPct").value = Math.round(widthValue * 10) / 10;
-            } else {
-                document.getElementById("imageResizeHeightPct").value =
-                    Math.max(1, Math.round(widthValue * imageResizeOriginalHeight / imageResizeOriginalWidth));
-            }
-        }
-        updateResizeCalcDisplay();
-    });
-    document.getElementById("imageResizeHeightPct").addEventListener("input", () => {
-        if (imageResizeLockRatio && imageResizeOriginalWidth > 0 && imageResizeOriginalHeight > 0) {
-            const heightValue = parseFloat(document.getElementById("imageResizeHeightPct").value) || 0;
-            if (imageResizeMode === "percent") {
-                document.getElementById("imageResizeWidthPct").value = Math.round(heightValue * 10) / 10;
-            } else {
-                document.getElementById("imageResizeWidthPct").value =
-                    Math.max(1, Math.round(heightValue * imageResizeOriginalWidth / imageResizeOriginalHeight));
-            }
-        }
-        updateResizeCalcDisplay();
-    });
-    document.getElementById("imageMergeBtn").addEventListener("click", doImageMerge);
-    document.getElementById("imageCropSaveBtn").addEventListener("click", saveImageCrop);
-    bindSegmentedControl("imageCropRatio", () => {
-        updateImageCropRatio();
-    });
-    document.getElementById("imageCropZoom").addEventListener("input", (e) => {
-        setImageCropZoomPercent(parseInt(e.target.value));
-    });
-    document.getElementById("imageCropZoomResetBtn").addEventListener("click", () => {
-        setImageCropZoomPercent(100);
-    });
-    document.getElementById("imageConvertBtn").addEventListener("click", doImageConvert);
-    document.getElementById("imageCompressBtn").addEventListener("click", doImageCompress);
-    bindImageCropEvents();
-
     bindSegmentedControl("deleteMode", (mode) => {
         const isRange = mode === "range-se";
         setHidden("deleteCountGroup", isRange);
@@ -235,6 +193,54 @@ document.addEventListener("DOMContentLoaded", () => {
         setHidden("deleteEndGroup", !isRange);
     });
 
+    byId("resizeBtn").addEventListener("click", doResize);
+    byId("deleteBtn").addEventListener("click", doDelete);
+    byId("extractBtn").addEventListener("click", doExtract);
+    byId("zip2pdfBtn").addEventListener("click", doZip2pdf);
+    byId("metadataSaveBtn").addEventListener("click", savePdfMetadata);
+    byId("metadataReloadBtn").addEventListener("click", loadPdfMetadata);
+
+    document.querySelectorAll(".tab-clean .clean-btn").forEach(btn => {
+        btn.addEventListener("click", () => doCleanType(btn.dataset.cleanType));
+    });
+}
+
+function syncResizeDimensionInput(sourceId, targetId, ratio) {
+    if (!PF.imageResizeLockRatio || PF.imageResizeOriginalWidth <= 0 || PF.imageResizeOriginalHeight <= 0) return;
+    const value = numberValue(sourceId);
+    byId(targetId).value = PF.imageResizeMode === "percent"
+        ? Math.round(value * 10) / 10
+        : Math.max(1, Math.round(value * ratio));
+}
+
+function bindImageToolControls() {
+    byId("imageResizeBtn").addEventListener("click", doImageResize);
+    document.querySelectorAll("[data-resize-mode]").forEach(btn => {
+        btn.addEventListener("click", () => setImageResizeMode(btn.dataset.resizeMode));
+    });
+    byId("imageResizeResetBtn").addEventListener("click", resetImageResizeSettings);
+    byId("imageResizeKeepRatio").addEventListener("change", toggleResizeLock);
+    byId("imageResizeNoEnlarge").addEventListener("change", updateResizeCalcDisplay);
+    byId("imageResizeWidthPct").addEventListener("input", () => {
+        syncResizeDimensionInput("imageResizeWidthPct", "imageResizeHeightPct", PF.imageResizeOriginalHeight / PF.imageResizeOriginalWidth);
+        updateResizeCalcDisplay();
+    });
+    byId("imageResizeHeightPct").addEventListener("input", () => {
+        syncResizeDimensionInput("imageResizeHeightPct", "imageResizeWidthPct", PF.imageResizeOriginalWidth / PF.imageResizeOriginalHeight);
+        updateResizeCalcDisplay();
+    });
+
+    byId("imageMergeBtn").addEventListener("click", doImageMerge);
+    byId("imageCropSaveBtn").addEventListener("click", saveImageCrop);
+    bindSegmentedControl("imageCropRatio", updateImageCropRatio);
+    byId("imageCropZoom").addEventListener("input", (e) => setImageCropZoomPercent(parseInt(e.target.value, 10)));
+    byId("imageCropZoomResetBtn").addEventListener("click", () => setImageCropZoomPercent(100));
+    byId("imageConvertBtn").addEventListener("click", doImageConvert);
+    byId("imageCompressBtn").addEventListener("click", doImageCompress);
+    bindImageCropEvents();
+}
+
+function bindGenericSegmentedControls() {
     document.addEventListener("click", (e) => {
         const btn = e.target.closest(".segmented-control .segmented-option");
         if (!btn) return;
@@ -245,22 +251,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (btn.hasAttribute("data-resize-mode")) return;
         setActiveControlOption(control, btn);
     });
+}
 
-    document.getElementById("resizeBtn").addEventListener("click", doResize);
-    document.getElementById("deleteBtn").addEventListener("click", doDelete);
-    document.getElementById("extractBtn").addEventListener("click", doExtract);
-    document.getElementById("zip2pdfBtn").addEventListener("click", doZip2pdf);
-
-    document.querySelectorAll(".tab-clean .clean-btn").forEach(btn => {
-        btn.addEventListener("click", () => doCleanType(btn.dataset.cleanType));
-    });
-
-    document.getElementById("openFolderBtn").addEventListener("click", async () => {
+function bindUtilityActions() {
+    byId("openFolderBtn").addEventListener("click", async () => {
         try {
             const resp = await fetch("/api/open-folder", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ folder: currentPath }),
+                body: JSON.stringify({ folder: PF.currentPath }),
             });
             const data = await resp.json();
             if (data.output) log(data.output);
@@ -269,9 +268,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    document.getElementById("clearLogBtn").addEventListener("click", clearLog);
-
-    document.getElementById("shutdownBtn").addEventListener("click", async () => {
+    byId("clearLogBtn").addEventListener("click", clearLog);
+    byId("shutdownBtn").addEventListener("click", async () => {
         if (!confirm(t("alert.confirmShutdown"))) return;
         try {
             const resp = await fetch("/api/shutdown", { method: "POST" });
@@ -283,4 +281,22 @@ document.addEventListener("DOMContentLoaded", () => {
             document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:18px;color:#86868b;">服务已关闭。</div>';
         }
     });
+}
+
+// =====================================================
+// Initialization & Event Binding
+// =====================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+    PF.rootPath = document.querySelector(".sidebar").dataset.root || "";
+    applyTranslations();
+    document.querySelector(".content").classList.add("pdf-mode");
+    document.body.classList.add("pdf-mode");
+    navigateTo(PF.rootPath);
+    bindMainNavigation();
+    bindPageTabs();
+    bindPdfToolControls();
+    bindImageToolControls();
+    bindGenericSegmentedControls();
+    bindUtilityActions();
 });

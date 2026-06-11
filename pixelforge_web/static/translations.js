@@ -106,9 +106,9 @@ var T = {
         "imagePreviewEmpty": "请先在左侧选择一张图片文件",
         // Image resize
         "image-panel-resize.h3": "图片拉伸",
-        "imageResizeMode.label": "调整方式",
-        "imageResizeMode.pixel": "按像素",
-        "imageResizeMode.percent": "按百分比",
+        "PF.imageResizeMode.label": "调整方式",
+        "PF.imageResizeMode.pixel": "按像素",
+        "PF.imageResizeMode.percent": "按百分比",
         "imageResizeWidthLabel": "宽度 (px)",
         "imageResizeWidthLabel.percent": "宽度 (%)",
         "imageResizeHeightLabel": "高度 (px)",
@@ -260,9 +260,9 @@ var T = {
         "tab.image.compress": "Compress",
         "imagePreviewEmpty": "Select an image file on the left",
         "image-panel-resize.h3": "Image Resize",
-        "imageResizeMode.label": "Resize By",
-        "imageResizeMode.pixel": "Pixels",
-        "imageResizeMode.percent": "Percentage",
+        "PF.imageResizeMode.label": "Resize By",
+        "PF.imageResizeMode.pixel": "Pixels",
+        "PF.imageResizeMode.percent": "Percentage",
         "imageResizeWidthLabel": "Width (px)",
         "imageResizeWidthLabel.percent": "Width (%)",
         "imageResizeHeightLabel": "Height (px)",
@@ -354,7 +354,7 @@ function applyTranslations() {
 
     // Re-render JS-generated dynamic content
     if (typeof updateSelectionInfo === "function") updateSelectionInfo();
-    if (typeof updateBreadcrumb === "function" && currentPath) updateBreadcrumb(currentPath);
+    if (typeof updateBreadcrumb === "function" && PF.currentPath) updateBreadcrumb(PF.currentPath);
 
     // Update preview placeholder texts (may have been overwritten by JS)
     var previewPh = document.querySelector("#previewPlaceholder p");
